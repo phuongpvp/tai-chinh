@@ -119,12 +119,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $confirm = $_POST['confirm_delete'] ?? '';
         if ($confirm === 'XOA TAT CA') {
             $logCount = $pdo->query("SELECT COUNT(*) FROM cv_work_logs")->fetchColumn();
-            $custCount = $pdo->query("SELECT COUNT(*) FROM customers")->fetchColumn();
             $tfCount = $pdo->query("SELECT COUNT(*) FROM cv_transfer_logs")->fetchColumn();
             $pdo->exec("DELETE FROM cv_transfer_logs");
             $pdo->exec("DELETE FROM cv_work_logs");
-            $pdo->exec("DELETE FROM customers");
-            $message = "🗑️ Đã xóa $custCount khách hàng + $logCount nhật ký + $tfCount chuyển phòng";
+            // KHÔNG xóa bảng customers — dùng chung với hệ thống TC
+            $message = "🗑️ Đã xóa $logCount nhật ký + $tfCount chuyển phòng (Khách hàng giữ nguyên)";
             $messageType = 'success';
         } else {
             $message = "❌ Nhập sai xác nhận. Phải gõ đúng: XOA TAT CA";

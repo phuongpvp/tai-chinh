@@ -57,7 +57,48 @@ RewriteRule ^bao-cao/dang-cho-vay$ report_loans.php [L,QSA]
 RewriteRule ^cai-dat$ settings.php [L,QSA]
 RewriteRule ^cai-dat/telegram$ telegram_manager.php [L,QSA]
 
-# ===== PREVENT DIRECT .php ACCESS (Optional - redirect to friendly URL) =====
-# Uncomment below if you want to force friendly URLs
-# RewriteCond %{THE_REQUEST} /tai-chinh/contracts\.php [NC]
-# RewriteRule ^ /tai-chinh/hop-dong [R=301,L]
+# ===== CÔNG VIỆC (CV) =====
+# cong-viec la thu muc that, can RewriteCond
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^cong-viec/khach-hang$ /cong-viec/customers.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^cong-viec/khach-hang/([0-9]+)$ /cong-viec/customer.php?id=$1 [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^cong-viec/tong-quan$ /cong-viec/index.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^cong-viec/nhat-ky$ /cong-viec/worklog_add.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^cong-viec/nhat-ky-tong$ /cong-viec/logs_all.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^cong-viec/thu-vien$ /cong-viec/library.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^cong-viec/phong/([0-9]+)$ /cong-viec/room.php?id=$1 [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^cong-viec/vi-pham$ /cong-viec/violations.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^cong-viec/nhan-vien$ /cong-viec/users.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^cong-viec/quan-ly-phong$ /cong-viec/rooms_manage.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^cong-viec/cau-hinh-phong/([0-9]+)$ /cong-viec/room_config.php?id=$1 [L,QSA]

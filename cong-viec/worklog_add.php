@@ -23,11 +23,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $amountVal = floatval(str_replace([',', '.', ' '], '', $amount));
         }
 
-        // Merge custom detail
+        // Merge custom detail + notes into work_done
         $customDetail = trim($_POST['custom_detail'] ?? '');
-        $workDone = $notes ?: ($actionType . ' → ' . $resultType);
-        if (!empty($customDetail)) {
-            $workDone = $customDetail . ($workDone ? '; ' . $workDone : '');
+        if (!empty($customDetail) && !empty($notes)) {
+            $workDone = $customDetail . '; ' . $notes;
+        } elseif (!empty($customDetail)) {
+            $workDone = $customDetail;
+        } elseif (!empty($notes)) {
+            $workDone = $notes;
+        } else {
+            $workDone = '';
         }
 
         $stmt = $pdo->prepare("INSERT INTO cv_work_logs (loan_id, user_id, room_id, work_done, log_date, action_type, result_type, promise_date, amount) 

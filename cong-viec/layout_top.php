@@ -28,7 +28,7 @@ $roleLabels = [
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= sanitize($pageTitle ?? 'Dashboard') ?> — Công Việc</title>
-    <link rel="stylesheet" href="style.css?v=<?= filemtime(__DIR__.'/style.css') ?>">
+    <link rel="stylesheet" href="/cong-viec/style.css?v=<?= filemtime(__DIR__.'/style.css') ?>">
 </head>
 <body>
     <div class="app-layout">
@@ -41,23 +41,23 @@ $roleLabels = [
 
             <nav class="sidebar-nav">
                 <div class="nav-section">
-                    <a href="index.php" class="nav-item <?= ($activePage ?? '') === 'dashboard' ? 'active' : '' ?>">
+                    <a href="/cong-viec/tong-quan" class="nav-item <?= ($activePage ?? '') === 'dashboard' ? 'active' : '' ?>">
                         <span class="nav-icon">📊</span>
                         <span>Dashboard</span>
                     </a>
-                    <a href="customers.php" class="nav-item <?= ($activePage ?? '') === 'customers' ? 'active' : '' ?>">
+                    <a href="/cong-viec/khach-hang" class="nav-item <?= ($activePage ?? '') === 'customers' ? 'active' : '' ?>">
                         <span class="nav-icon">👥</span>
                         <span>Khách hàng</span>
                     </a>
-                    <a href="worklog_add.php" class="nav-item <?= ($activePage ?? '') === 'worklog_add' ? 'active' : '' ?>">
+                    <a href="/cong-viec/nhat-ky" class="nav-item <?= ($activePage ?? '') === 'worklog_add' ? 'active' : '' ?>">
                         <span class="nav-icon">📝</span>
                         <span>Nhật ký</span>
                     </a>
-                    <a href="logs_all.php" class="nav-item <?= ($activePage ?? '') === 'logs_all' ? 'active' : '' ?>">
+                    <a href="/cong-viec/nhat-ky-tong" class="nav-item <?= ($activePage ?? '') === 'logs_all' ? 'active' : '' ?>">
                         <span class="nav-icon">📋</span>
                         <span>Nhật ký tổng</span>
                     </a>
-                    <a href="library.php" class="nav-item <?= ($activePage ?? '') === 'library' ? 'active' : '' ?>">
+                    <a href="/cong-viec/thu-vien" class="nav-item <?= ($activePage ?? '') === 'library' ? 'active' : '' ?>">
                         <span class="nav-icon">📚</span>
                         <span>Thư viện & HD</span>
                     </a>
@@ -70,7 +70,7 @@ $roleLabels = [
                     </div>
                     <div id="room-list" style="overflow:hidden;transition:max-height 0.3s ease;">
                     <?php foreach ($sidebarRooms as $sidebarRoom): ?>
-                        <a href="room.php?id=<?= $sidebarRoom['id'] ?>" 
+                        <a href="/cong-viec/phong/<?= $sidebarRoom['id'] ?>" 
                            class="nav-item <?= ($activePage ?? '') === 'room-' . $sidebarRoom['id'] ? 'active' : '' ?>">
                             <span class="nav-icon"><?= $sidebarRoom['icon'] ?></span>
                             <span><?= sanitize($sidebarRoom['name']) ?></span>
@@ -106,23 +106,20 @@ $roleLabels = [
                 <?php if (in_array($user['role'], ['admin', 'manager'])): ?>
                 <div class="nav-section">
                     <div class="nav-section-title">Quản lý</div>
-                    <a href="violations.php" class="nav-item <?= ($activePage ?? '') === 'violations' ? 'active' : '' ?>">
+                    <a href="/cong-viec/vi-pham" class="nav-item <?= ($activePage ?? '') === 'violations' ? 'active' : '' ?>">
                         <span class="nav-icon">⚠️</span>
                         <span>Vi phạm</span>
                     </a>
                     <?php if ($user['role'] === 'admin'): ?>
-                    <a href="users.php" class="nav-item <?= ($activePage ?? '') === 'users' ? 'active' : '' ?>">
+                    <a href="/cong-viec/nhan-vien" class="nav-item <?= ($activePage ?? '') === 'users' ? 'active' : '' ?>">
                         <span class="nav-icon">👥</span>
                         <span>Nhân viên</span>
                     </a>
-                    <a href="rooms_manage.php" class="nav-item <?= ($activePage ?? '') === 'rooms_manage' ? 'active' : '' ?>">
+                    <a href="/cong-viec/quan-ly-phong" class="nav-item <?= ($activePage ?? '') === 'rooms_manage' ? 'active' : '' ?>">
                         <span class="nav-icon">🏢</span>
                         <span>Quản lý phòng</span>
                     </a>
-                    <a href="data_manage.php" class="nav-item <?= ($activePage ?? '') === 'data_manage' ? 'active' : '' ?>">
-                        <span class="nav-icon">💾</span>
-                        <span>Dữ liệu</span>
-                    </a>
+
                     <?php endif; ?>
                 </div>
                 <?php endif; ?>
@@ -169,7 +166,7 @@ $roleLabels = [
                 const q = this.value.trim();
                 if (q.length < 1) { results.style.display='none'; return; }
                 timer = setTimeout(()=>{
-                    fetch('search_api.php?q='+encodeURIComponent(q))
+                    fetch('/cong-viec/search_api.php?q='+encodeURIComponent(q))
                     .then(r=>r.json())
                     .then(data=>{
                         if (!data.length) {
@@ -177,7 +174,7 @@ $roleLabels = [
                         } else {
                             results.innerHTML = data.map(c => {
                                 const statusBadge = c.status==='completed' ? '<span style="font-size:11px;color:var(--accent-green);">✅</span> ' : '';
-                                return `<a href="customer.php?id=${c.id}" style="display:flex;align-items:center;gap:10px;padding:10px 14px;text-decoration:none;color:var(--text-primary);border-bottom:1px solid var(--border-color);transition:background 0.15s;" onmouseenter="this.style.background='var(--bg-card-hover)'" onmouseleave="this.style.background=''">
+                                return `<a href="/cong-viec/khach-hang/${c.id}" style="display:flex;align-items:center;gap:10px;padding:10px 14px;text-decoration:none;color:var(--text-primary);border-bottom:1px solid var(--border-color);transition:background 0.15s;" onmouseenter="this.style.background='var(--bg-card-hover)'" onmouseleave="this.style.background=''">
                                     <div style="flex:1;min-width:0;">
                                         <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${statusBadge}${c.name}</div>
                                         <div style="font-size:12px;color:var(--text-muted);">${c.phone||''}</div>

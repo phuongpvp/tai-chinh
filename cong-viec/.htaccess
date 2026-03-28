@@ -1,0 +1,14 @@
+RewriteEngine On
+RewriteBase /cong-viec/
+
+RewriteRule ^tong-quan$ index.php [L,QSA]
+RewriteRule ^khach-hang$ customers.php [L,QSA]
+RewriteRule ^khach-hang/([0-9]+)$ customer.php?id=$1 [L,QSA]
+RewriteRule ^nhat-ky$ worklog_add.php [L,QSA]
+RewriteRule ^nhat-ky-tong$ logs_all.php [L,QSA]
+RewriteRule ^thu-vien$ library.php [L,QSA]
+RewriteRule ^phong/([0-9]+)$ room.php?id=$1 [L,QSA]
+RewriteRule ^vi-pham$ violations.php [L,QSA]
+RewriteRule ^nhan-vien$ users.php [L,QSA]
+RewriteRule ^quan-ly-phong$ rooms_manage.php [L,QSA]
+RewriteRule ^cau-hinh-phong/([0-9]+)$ room_config.php?id=$1 [L,QSA]
