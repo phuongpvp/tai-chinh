@@ -1,0 +1,26 @@
+# File nhạy cảm - KHÔNG push lên GitHub
+config.php
+cong-viec/google_drive.php
+cong-viec/config.php
+cong-viec/gdrive_token.json
+
+# File nén backup
+*.rar
+*.zip
+*.tar.gz
+
+# File tạm
+*.tmp
+*.log
+*.bak
+~$*
+
+# Thư mục upload (nếu có)
+uploads/
+
+# Thư mục vendor (nếu dùng composer)
+vendor/
+
+# OS files
+Thumbs.db
+.DS_Store

@@ -1,0 +1,63 @@
+RewriteEngine On
+RewriteBase /
+
+# ===== FRIENDLY URLs → PHP FILES =====
+
+# Trang chủ
+RewriteRule ^trang-chu$ index.php [L,QSA]
+
+# Đăng nhập / Đăng xuất
+RewriteRule ^dang-nhap$ login.php [L,QSA]
+RewriteRule ^dang-xuat$ logout.php [L,QSA]
+
+# Hợp đồng (Tín chấp)
+RewriteRule ^hop-dong$ contracts.php [L,QSA]
+RewriteRule ^hop-dong/them-moi$ contract_add.php [L,QSA]
+RewriteRule ^hop-dong/sua/([0-9]+)$ contract_edit.php?id=$1 [L,QSA]
+RewriteRule ^hop-dong/chi-tiet/([0-9]+)$ contract_view.php?id=$1 [L,QSA]
+RewriteRule ^hop-dong/xuat-excel$ contract_export.php [L,QSA]
+RewriteRule ^hop-dong/nhap-du-lieu$ contract_import.php [L,QSA]
+
+# Khách hàng
+RewriteRule ^khach-hang$ customers.php [L,QSA]
+RewriteRule ^khach-hang/sua/([0-9]+)$ customer_edit.php?id=$1 [L,QSA]
+
+# Cửa hàng
+RewriteRule ^cua-hang$ store_select.php [L,QSA]
+RewriteRule ^cua-hang/them-moi$ store_add.php [L,QSA]
+
+# Thu chi
+RewriteRule ^chi-hoat-dong$ expenses.php [L,QSA]
+RewriteRule ^thu-hoat-dong$ incomes.php [L,QSA]
+
+# Nguồn vốn
+RewriteRule ^nguon-von$ capital_management.php [L,QSA]
+
+# Cổ đông
+RewriteRule ^co-dong$ shareholder_dashboard.php [L,QSA]
+RewriteRule ^co-dong/danh-sach$ shareholders.php [L,QSA]
+RewriteRule ^co-dong/chia-co-tuc$ dividend_distribution.php [L,QSA]
+RewriteRule ^co-dong/chia-co-tuc-nhieu$ dividend_distribution_multi.php [L,QSA]
+RewriteRule ^co-dong/bao-cao$ dividend_report.php [L,QSA]
+
+# Nhân viên
+RewriteRule ^nhan-vien$ users.php [L,QSA]
+RewriteRule ^nhan-vien/them-moi$ user_add.php [L,QSA]
+RewriteRule ^nhan-vien/sua/([0-9]+)$ user_edit.php?id=$1 [L,QSA]
+RewriteRule ^nhan-vien/phan-quyen/([0-9]+)$ user_permissions.php?id=$1 [L,QSA]
+
+# Báo cáo
+RewriteRule ^bao-cao/tong-ket-giao-dich$ report_transactions.php [L,QSA]
+RewriteRule ^bao-cao/so-quy$ report_cash_book.php [L,QSA]
+RewriteRule ^bao-cao/loi-nhuan$ report_profit.php [L,QSA]
+RewriteRule ^bao-cao/chi-tiet-lai$ report_interest_detail.php [L,QSA]
+RewriteRule ^bao-cao/dang-cho-vay$ report_loans.php [L,QSA]
+
+# Cài đặt
+RewriteRule ^cai-dat$ settings.php [L,QSA]
+RewriteRule ^cai-dat/telegram$ telegram_manager.php [L,QSA]
+
+# ===== PREVENT DIRECT .php ACCESS (Optional - redirect to friendly URL) =====
+# Uncomment below if you want to force friendly URLs
+# RewriteCond %{THE_REQUEST} /tai-chinh/contracts\.php [NC]
+# RewriteRule ^ /tai-chinh/hop-dong [R=301,L]

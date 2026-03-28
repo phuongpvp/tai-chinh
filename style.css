@@ -1,0 +1,259 @@
+/* Global Styles matching reference */
+body {
+    background-color: #eee;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 13px;
+}
+
+/* Navbar */
+.navbar-custom {
+    background-color: #fff;
+    border-bottom: 1px solid #ddd;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.navbar-custom .nav-link {
+    color: #444;
+    font-weight: 600;
+}
+
+.navbar-custom .nav-link.active {
+    color: #d9534f;
+    /* Reddish active color */
+}
+
+/* Dashboard Stats */
+.stat-row {
+    background: #fff;
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+}
+
+.stat-label {
+    text-transform: uppercase;
+    color: #777;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.stat-value {
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 5px;
+}
+
+.text-loan {
+    color: #555;
+}
+
+.text-profit {
+    color: #d9534f;
+}
+
+/* Red for money values often used in site */
+.text-cash {
+    color: #f0ad4e;
+}
+
+/* Filter Bar */
+.filter-bar {
+    background: #fff;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+}
+
+/* Tables */
+.table-custom {
+    background: #fff;
+    border: 1px solid #ddd;
+    font-size: 13px;
+}
+
+.table-custom thead th {
+    background-color: #f9f9f9;
+    border-bottom: 2px solid #ddd;
+    color: #555;
+    font-weight: 700;
+    text-align: center;
+}
+
+.table-custom tbody td {
+    vertical-align: middle;
+    border-bottom: 1px solid #eee;
+    padding: 8px 5px;
+}
+
+.table-custom tbody tr:hover {
+    background-color: #f0f8ff;
+}
+
+/* Customer Name Link */
+.customer-name {
+    color: #337ab7;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.phone-number {
+    color: #777;
+    display: block;
+    margin-top: 2px;
+}
+
+/* Status Badges */
+.status-badge {
+    padding: 3px 8px;
+    border-radius: 3px;
+    color: #fff;
+    font-size: 11px;
+    display: inline-block;
+    min-width: 80px;
+    text-align: center;
+}
+
+.status-active {
+    background-color: #f0ad4e;
+}
+
+/* Orange like 'Nợ lãi phí' */
+.status-closed {
+    background-color: #777;
+}
+
+/* Action Icons */
+.icon-btn {
+    width: 28px;
+    height: 28px;
+    line-height: 28px;
+    text-align: center;
+    border-radius: 3px;
+    color: #fff;
+    display: inline-block;
+    font-size: 11px;
+    margin: 0 2px;
+}
+
+.btn-detail {
+    background-color: #f0ad4e;
+}
+
+.btn-history {
+    background-color: #5bc0de;
+}
+
+.btn-delete {
+    background-color: #fff;
+    border: 1px solid #d9534f;
+    color: #d9534f;
+}
+
+/* === GLOBAL LAYOUT STANDARDIZATION === */
+body {
+    font-size: .85rem;
+    background-color: #f4f6f9;
+}
+
+.sidebar {
+    position: fixed;
+    top: 56px;
+    bottom: 0;
+    left: 0;
+    z-index: 1000;
+    padding: 0;
+    box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+}
+
+.main-content {
+    margin-left: 16.66667%;
+    /* col-md-2 width approx */
+    margin-top: 56px !important;
+    padding: 20px;
+    padding-top: 30px !important;
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        margin-left: 0;
+        margin-top: 56px;
+    }
+
+    .sidebar {
+        /* When collapsed on mobile, it should be full width or fixed width slide-out */
+        width: 260px;
+        z-index: 1050;
+        /* Above content and below navbar */
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
+        background-color: #ffffff !important;
+        /* Solid white background */
+        display: none;
+        /* Default hidden */
+    }
+
+    .sidebar.show {
+        display: block !important;
+        background-color: #ffffff !important;
+    }
+}
+
+.stat-box {
+    background: #fff;
+    padding: 15px;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+    border-left: 3px solid #ddd;
+}
+
+.icon-btn {
+    border: 1px solid #ddd;
+    background: #fcfcfc;
+    padding: 4px 8px;
+    margin-right: 2px;
+    color: #555;
+    border-radius: 3px;
+    display: inline-block;
+}
+
+.icon-btn:hover {
+    background: #eee;
+}
+
+.icon-coin {
+    color: #cda85c;
+}
+
+/* Gold color */
+.icon-anchor {
+    color: #777;
+}
+
+.icon-alarm {
+    color: #5cb85c;
+}
+
+/* Footer Total Row */
+.total-row {
+    background-color: #fcf8e3;
+    /* Yellowish background */
+    font-weight: bold;
+    color: #a94442;
+}
+
+/* Sidebar Arrow Rotation */
+.nav-link-collapse-trigger .fa-chevron-down {
+    transition: transform 0.3s ease;
+}
+
+.nav-link-collapse-trigger.collapsed .fa-chevron-down {
+    transform: rotate(-90deg);
+}
+
+.nav-link-collapse-trigger.collapsed .fa-chevron-left {
+    transform: rotate(0deg);
+    /* If using left by default */
+}
