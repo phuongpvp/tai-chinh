@@ -49,16 +49,22 @@ function cvAutoTransferOnPayment($conn, $loanId, $userId = null) {
         if ($shouldComplete) {
             $companyTag = $loan['store_name'] ?? '';
             
+            // Lấy SLA của phòng đích để tính due_date
+            $slaStmt = $conn->prepare("SELECT sla_days FROM cv_rooms WHERE id = ?");
+            $slaStmt->execute([$htRoomId]);
+            $slaDays = intval($slaStmt->fetchColumn());
+            $newDueDate = ($slaDays > 0) ? date('Y-m-d', strtotime("+{$slaDays} days")) : null;
+            
             if ($oldRoomId > 0) {
                 // Đang ở CV (Tín dụng 1) → chuyển sang Đã hoàn thành
-                $conn->prepare("UPDATE loans SET cv_room_id = ?, cv_transfer_date = ?, cv_company_tag = IFNULL(NULLIF(cv_company_tag,''), ?) WHERE id = ?")
-                     ->execute([$htRoomId, $today, $companyTag, $loanId]);
+                $conn->prepare("UPDATE loans SET cv_room_id = ?, cv_transfer_date = ?, cv_due_date = ?, cv_company_tag = IFNULL(NULLIF(cv_company_tag,''), ?) WHERE id = ?")
+                     ->execute([$htRoomId, $today, $newDueDate, $companyTag, $loanId]);
                 $conn->prepare("INSERT INTO cv_transfer_logs (loan_id, from_room_id, to_room_id, transferred_by, note) VALUES (?, ?, ?, ?, ?)")
                      ->execute([$loanId, $oldRoomId, $htRoomId, $userId, 'Tự động: Đã đóng đủ lãi kỳ này']);
             } else {
                 // Chưa ở CV (đóng sớm trước hạn) → thêm thẳng vào Đã hoàn thành
-                $conn->prepare("UPDATE loans SET cv_room_id = ?, cv_transfer_date = ?, cv_status = 'active', cv_company_tag = IFNULL(NULLIF(cv_company_tag,''), ?) WHERE id = ?")
-                     ->execute([$htRoomId, $today, $companyTag, $loanId]);
+                $conn->prepare("UPDATE loans SET cv_room_id = ?, cv_transfer_date = ?, cv_due_date = ?, cv_status = 'active', cv_company_tag = IFNULL(NULLIF(cv_company_tag,''), ?) WHERE id = ?")
+                     ->execute([$htRoomId, $today, $newDueDate, $companyTag, $loanId]);
                 $conn->prepare("INSERT INTO cv_transfer_logs (loan_id, from_room_id, to_room_id, transferred_by, note) VALUES (?, NULL, ?, ?, ?)")
                      ->execute([$loanId, $htRoomId, $userId, 'Tự động: Đóng lãi sớm → Đã hoàn thành']);
             }

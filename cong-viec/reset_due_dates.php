@@ -12,7 +12,7 @@ $today = date('Y-m-d');
 echo "<h2>Reset cv_due_date theo SLA phòng</h2><pre>";
 
 // Lấy tất cả phòng có SLA
-$rooms = $pdo->query("SELECT id, name, sla_days FROM cv_rooms WHERE is_archive = 0")->fetchAll(PDO::FETCH_ASSOC);
+$rooms = $pdo->query("SELECT id, name, sla_days FROM cv_rooms WHERE name LIKE '%hoàn thành%'")->fetchAll(PDO::FETCH_ASSOC);
 
 $total = 0;
 foreach ($rooms as $room) {
