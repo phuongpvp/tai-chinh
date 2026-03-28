@@ -65,19 +65,16 @@ if ($filterType === 'all' || $filterType === 'transfer') {
     $transferLogs = $stmt->fetchAll();
 }
 
-// CSV export
-if (isset($_GET['export']) && $_GET['export'] === 'csv') {
+// XLSX export
+if (isset($_GET['export']) && $_GET['export'] === 'xlsx') {
+    require_once __DIR__ . '/../SimpleXLSXGen.php';
     $exportType = $_GET['export_type'] ?? 'all';
     $dateSuffix = $filterDate . '_' . $filterDateTo;
     
     if ($exportType === 'worklog' || $exportType === 'all') {
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="nhatky_tong_' . $dateSuffix . '.csv"');
-        $out = fopen('php://output', 'w');
-        fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
-        fputcsv($out, ['Ngày', 'Họ tên khách', 'Phòng', 'Nhân viên', 'Việc đã làm', 'Kết quả', 'Ghi chú', 'Lãi đã trả', 'Gốc đã trả']);
+        $rows = [['Ngày', 'Họ tên khách', 'Phòng', 'Nhân viên', 'Việc đã làm', 'Kết quả', 'Ghi chú', 'Lãi đã trả', 'Gốc đã trả']];
         foreach ($workLogs as $wl) {
-            fputcsv($out, [
+            $rows[] = [
                 date('d/m/Y', strtotime($wl['log_date'])),
                 $wl['customer_name'] ?? '',
                 $wl['room_name'] ?? '',
@@ -87,30 +84,24 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 $wl['work_done'] ?? '',
                 !empty($wl['amount']) ? number_format($wl['amount'], 0, ',', '.') : '',
                 !empty($wl['amount_principal']) ? number_format($wl['amount_principal'], 0, ',', '.') : ''
-            ]);
+            ];
         }
-        fclose($out);
-        exit;
+        SimpleXLSXGen::fromArray($rows)->downloadAs('nhatky_tong_' . $dateSuffix . '.xlsx');
     }
     
     if ($exportType === 'transfer') {
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="chuyenphong_tong_' . $dateSuffix . '.csv"');
-        $out = fopen('php://output', 'w');
-        fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
-        fputcsv($out, ['Thời gian', 'Họ tên khách', 'Từ phòng', 'Đến phòng', 'Người chuyển', 'Ghi chú']);
+        $rows = [['Thời gian', 'Họ tên khách', 'Từ phòng', 'Đến phòng', 'Người chuyển', 'Ghi chú']];
         foreach ($transferLogs as $tl) {
-            fputcsv($out, [
+            $rows[] = [
                 date('d/m/Y H:i', strtotime($tl['transferred_at'])),
                 $tl['customer_name'] ?? '',
                 $tl['from_room_name'] ?? '',
                 $tl['to_room_name'] ?? '',
                 $tl['transferred_by_name'] ?? '',
                 $tl['note'] ?? ''
-            ]);
+            ];
         }
-        fclose($out);
-        exit;
+        SimpleXLSXGen::fromArray($rows)->downloadAs('chuyenphong_tong_' . $dateSuffix . '.xlsx');
     }
 }
 
@@ -174,7 +165,7 @@ include 'layout_top.php';
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
             <h3 style="color:var(--text-primary);font-size:16px;margin:0;">📝 Nhật ký làm việc (<?= count($workLogs) ?>)</h3>
             <?php if (!empty($workLogs)): ?>
-            <a href="?<?= http_build_query(array_merge($_GET, ['export' => 'csv', 'export_type' => 'worklog'])) ?>" class="btn btn-secondary btn-sm">📥 Xuất Excel</a>
+            <a href="?<?= http_build_query(array_merge($_GET, ['export' => 'xlsx', 'export_type' => 'worklog'])) ?>" class="btn btn-secondary btn-sm">📥 Xuất Excel</a>
             <?php endif; ?>
         </div>
         <?php if (empty($workLogs)): ?>
@@ -234,7 +225,7 @@ include 'layout_top.php';
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
             <h3 style="color:var(--text-primary);font-size:16px;margin:0;">🔄 Chuyển phòng (<?= count($transferLogs) ?>)</h3>
             <?php if (!empty($transferLogs)): ?>
-            <a href="?<?= http_build_query(array_merge($_GET, ['export' => 'csv', 'export_type' => 'transfer'])) ?>" class="btn btn-secondary btn-sm">📥 Xuất Excel</a>
+            <a href="?<?= http_build_query(array_merge($_GET, ['export' => 'xlsx', 'export_type' => 'transfer'])) ?>" class="btn btn-secondary btn-sm">📥 Xuất Excel</a>
             <?php endif; ?>
         </div>
         <?php if (empty($transferLogs)): ?>

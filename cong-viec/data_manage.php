@@ -432,7 +432,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // ─────────────── EXPORT ───────────────
     if ($action === 'export') {
-        // Tạo CSV (tương thích Excel với BOM UTF-8)
+        require_once __DIR__ . '/../SimpleXLSXGen.php';
         $customers = $pdo->query("
             SELECT c.*, r.name as room_name 
             FROM loans l LEFT JOIN customers c ON l.customer_id = c.id 
@@ -440,18 +440,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ORDER BY r.name, c.name
         ")->fetchAll();
         
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="khachhang_export_' . date('Y-m-d_His') . '.csv"');
-        
-        $output = fopen('php://output', 'w');
-        // BOM UTF-8 để Excel đọc đúng tiếng Việt
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-        
-        // Header
-        fputcsv($output, ['Họ tên', 'Phòng', 'SĐT', 'CCCD', 'HKTT', 'Facebook', 'Công ty', 'Đơn vị', 'Người thân', 'Mô tả', 'Trạng thái', 'Ngày hạn', 'Ngày chuyển']);
-        
+        $rows = [['Họ tên', 'Phòng', 'SĐT', 'CCCD', 'HKTT', 'Facebook', 'Công ty', 'Đơn vị', 'Người thân', 'Mô tả', 'Trạng thái', 'Ngày hạn', 'Ngày chuyển']];
         foreach ($customers as $c) {
-            fputcsv($output, [
+            $rows[] = [
                 $c['name'],
                 $c['room_name'],
                 $c['phone'],
@@ -465,10 +456,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $c['status'],
                 $c['due_date'],
                 $c['transfer_date']
-            ]);
+            ];
         }
-        fclose($output);
-        exit;
+        SimpleXLSXGen::fromArray($rows)->downloadAs('khachhang_export_' . date('Y-m-d_His') . '.xlsx');
     }
 }
 
@@ -561,7 +551,7 @@ include 'layout_top.php';
             <!-- EXPORT -->
             <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius-lg); padding:24px;">
                 <h3 style="margin:0 0 8px 0; font-size:18px;">📤 Export dữ liệu</h3>
-                <p style="color:var(--text-muted); font-size:13px; margin-bottom:20px;">Tải toàn bộ danh sách khách hàng ra file CSV (mở được bằng Excel)</p>
+                <p style="color:var(--text-muted); font-size:13px; margin-bottom:20px;">Tải toàn bộ danh sách khách hàng ra file Excel (.xlsx)</p>
                 <form method="POST">
                     <input type="hidden" name="action" value="export">
                     <button type="submit" class="btn btn-secondary" style="width:100%;" <?= $totalCustomers == 0 ? 'disabled' : '' ?>>

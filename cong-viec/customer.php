@@ -401,37 +401,29 @@ usort($timeline, function($a, $b) { return $b['sort_time'] - $a['sort_time']; })
 // Tab hiện tại
 $tab = $_GET['tab'] ?? 'worklog';
 
-// CSV export (must be before any HTML output)
-if (isset($_GET['export']) && $_GET['export'] === 'csv') {
+// XLSX export (must be before any HTML output)
+if (isset($_GET['export']) && $_GET['export'] === 'xlsx') {
+    require_once __DIR__ . '/../SimpleXLSXGen.php';
     $exportTab = $tab;
     $safeCustomerName = preg_replace('/[^a-zA-Z0-9_]/', '', $customer['name']);
     
     if ($exportTab === 'timeline') {
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="tonghop_' . $safeCustomerName . '_' . date('Ymd') . '.csv"');
-        $out = fopen('php://output', 'w');
-        fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
-        fputcsv($out, ['Thời gian', 'Họ tên khách', 'Loại thông tin', 'Nội dung tổng hợp']);
+        $rows = [['Thời gian', 'Họ tên khách', 'Loại thông tin', 'Nội dung tổng hợp']];
         foreach ($timeline as $item) {
-            fputcsv($out, [
+            $rows[] = [
                 date('d/m/Y', strtotime($item['date'])),
                 $customer['name'],
                 $item['type'],
                 $item['summary']
-            ]);
+            ];
         }
-        fclose($out);
-        exit;
+        SimpleXLSXGen::fromArray($rows)->downloadAs('tonghop_' . $safeCustomerName . '_' . date('Ymd') . '.xlsx');
     }
     
     if ($exportTab === 'worklog') {
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="nhatky_' . $safeCustomerName . '_' . date('Ymd') . '.csv"');
-        $out = fopen('php://output', 'w');
-        fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
-        fputcsv($out, ['Ngày', 'Họ tên khách', 'Nhân viên', 'Phòng làm việc', 'Việc đã làm', 'Kết quả', 'Ghi chú', 'Lãi đã trả', 'Gốc đã trả']);
+        $rows = [['Ngày', 'Họ tên khách', 'Nhân viên', 'Phòng làm việc', 'Việc đã làm', 'Kết quả', 'Ghi chú', 'Lãi đã trả', 'Gốc đã trả']];
         foreach ($workLogs as $wl) {
-            fputcsv($out, [
+            $rows[] = [
                 date('d/m/Y', strtotime($wl['log_date'])),
                 $customer['name'],
                 $wl['user_name'] ?? '',
@@ -441,30 +433,24 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 $wl['work_done'] ?? '',
                 $wl['amount'] ? number_format($wl['amount'], 0, ',', '.') : '',
                 !empty($wl['amount_principal']) ? number_format($wl['amount_principal'], 0, ',', '.') : ''
-            ]);
+            ];
         }
-        fclose($out);
-        exit;
+        SimpleXLSXGen::fromArray($rows)->downloadAs('nhatky_' . $safeCustomerName . '_' . date('Ymd') . '.xlsx');
     }
     
     if ($exportTab === 'transfers') {
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="chuyenphong_' . $safeCustomerName . '_' . date('Ymd') . '.csv"');
-        $out = fopen('php://output', 'w');
-        fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
-        fputcsv($out, ['Thời gian', 'Họ tên khách', 'Từ phòng', 'Đến phòng', 'Người chuyển', 'Ghi chú']);
+        $rows = [['Thời gian', 'Họ tên khách', 'Từ phòng', 'Đến phòng', 'Người chuyển', 'Ghi chú']];
         foreach ($transferLogs as $tl) {
-            fputcsv($out, [
+            $rows[] = [
                 date('d/m/Y H:i', strtotime($tl['transferred_at'])),
                 $customer['name'],
                 $tl['from_room_name'] ?? '',
                 $tl['to_room_name'] ?? '',
                 $tl['transferred_by_name'] ?? '',
                 $tl['note'] ?? ''
-            ]);
+            ];
         }
-        fclose($out);
-        exit;
+        SimpleXLSXGen::fromArray($rows)->downloadAs('chuyenphong_' . $safeCustomerName . '_' . date('Ymd') . '.xlsx');
     }
 }
 
@@ -729,7 +715,7 @@ include 'layout_top.php';
     <?php if ($tab === 'worklog'): ?>
     <section>
         <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:16px;">
-            <a href="?id=<?= $customerId ?>&tab=worklog&export=csv" class="btn btn-secondary btn-sm">📥 Xuất Excel</a>
+            <a href="?id=<?= $customerId ?>&tab=worklog&export=xlsx" class="btn btn-secondary btn-sm">📥 Xuất Excel</a>
             <button class="btn btn-primary btn-sm" onclick="openModal('worklog-modal')">➕ Thêm</button>
         </div>
 
@@ -830,7 +816,7 @@ include 'layout_top.php';
     <?php if ($tab === 'transfers'): ?>
     <section>
         <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:16px;">
-            <a href="?id=<?= $customerId ?>&tab=transfers&export=csv" class="btn btn-secondary btn-sm">📥 Xuất Excel</a>
+            <a href="?id=<?= $customerId ?>&tab=transfers&export=xlsx" class="btn btn-secondary btn-sm">📥 Xuất Excel</a>
         </div>
         <?php if (empty($transferLogs)): ?>
             <div class="empty-state" style="padding:24px;">
@@ -960,7 +946,7 @@ include 'layout_top.php';
     <section>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
             <span style="color:var(--text-muted);font-size:13px;">Tổng: <?= count($timeline) ?> mục</span>
-            <a href="?id=<?= $customerId ?>&tab=timeline&export=csv" class="btn btn-secondary btn-sm">📥 Xuất Excel</a>
+            <a href="?id=<?= $customerId ?>&tab=timeline&export=xlsx" class="btn btn-secondary btn-sm">📥 Xuất Excel</a>
         </div>
         <?php if (empty($timeline)): ?>
             <div class="empty-state" style="padding:24px;">

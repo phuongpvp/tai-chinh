@@ -3,6 +3,7 @@ config.php
 cong-viec/google_drive.php
 cong-viec/config.php
 cong-viec/gdrive_token.json
+backup_git.bat
 
 # File nén backup
 *.rar
