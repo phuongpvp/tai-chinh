@@ -779,5 +779,33 @@ Cấu hình trong `.htaccess` (thư mục gốc), sử dụng `RewriteCond` vì 
 ### Tính năng chưa làm
 
 - **Cổ đông / Chia cổ tức** (`/co-dong/chia-co-tuc-nhieu`) — chờ bàn bạc
-- **AI Đánh giá khách hàng** — dùng Gemini Pro API, cần tạo API key + viết prompt đánh giá
-- **Slug cho phòng** — đổi URL `/phong/2` → `/phong/tin-dung-1` (tùy chọn)
+### 🤖 Module AI Phân Tích Khách Hàng (29/03/2026)
+
+Tính năng tự động tổng hợp dữ liệu (nhật ký, giao dịch) và đưa ra đánh giá rủi ro/đề xuất hành động.
+
+#### 🛠️ Kiến trúc Integration:
+- **Provider**: [OpenRouter.ai](https://openrouter.ai/) (Dùng Proxy để lách luật giới hạn vùng của Google Gemini).
+- **Model**: `openai/gpt-oss-120b:free` hoặc `openrouter/free`.
+- **Lưu trữ**: Bảng `system_settings` trong Database.
+  - `gemini_api_key`: Lưu API Key của OpenRouter (sk-or-...).
+  - `gemini_prompt`: Lưu mẫu câu lệnh (prompt) đánh giá.
+
+#### 🔧 Cách cấu hình:
+1. **Lấy API Key**: Truy cập [OpenRouter Keys](https://openrouter.ai/keys) → Tạo key mới.
+2. **Cài đặt trong hệ thống**: Vào giao diện **Cài đặt AI** → Dán Key → Bấm **Lưu**.
+3. **Tùy chỉnh Prompt**: Có thể sửa trực tiếp trong UI trang Cài đặt (đã có nút Reset mặc định).
+
+#### ⚠️ Lưu ý quan trọng (Tránh lỗi API):
+Nếu gặp lỗi "No endpoints matching guardrail restrictions", cần cấu hình tài khoản OpenRouter:
+- Vào [OpenRouter Privacy Settings](https://openrouter.ai/settings/privacy).
+- **Tắt (OFF)** nút: **"Always Enforce Allowed"**.
+- **Bật (ON)** nút: **"Enable free endpoints that may train on inputs"**.
+- **Tắt (OFF)** nút: **"ZDR Endpoints Only"**.
+
+#### 📝 Logic xử lý (ai_analyze.php):
+- Tổng hợp 3 nguồn data: Nhật ký làm việc, Lịch sử chuyển phòng, Lịch sử giao dịch TC.
+- Gửi Prompt + Data sang OpenRouter theo định dạng OpenAI.
+- Hiển thị kết quả dạng Markdown/Emoji trong trang chi tiết khách hàng.
+- **Tự động nhận diện khách Tốt**: Ưu tiên đề xuất "Tri ân/Duy trì" thay vì "Nhắc nợ".
+
+---

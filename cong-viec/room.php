@@ -172,7 +172,7 @@ include 'layout_top.php';
                     $statusText = 'Còn ' . $days . ' ngày';
                 }
             ?>
-                <a href="customer.php?id=<?= $c['id'] ?>" class="customer-card" style="text-decoration:none;color:inherit;">
+                <a href="/cong-viec/customer.php?id=<?= $c['id'] ?>" class="customer-card" style="text-decoration:none;color:inherit;">
                     <div class="customer-card-header">
                         <div class="customer-avatar">👤</div>
                         <div class="customer-name"><?= sanitize($c['name']) ?></div>

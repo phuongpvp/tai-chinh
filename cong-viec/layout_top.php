@@ -119,6 +119,10 @@ $roleLabels = [
                         <span class="nav-icon">🏢</span>
                         <span>Quản lý phòng</span>
                     </a>
+                    <a href="/cong-viec/ai_settings.php" class="nav-item <?= ($activePage ?? '') === 'ai_settings' ? 'active' : '' ?>">
+                        <span class="nav-icon">🤖</span>
+                        <span>Cài đặt AI</span>
+                    </a>
 
                     <?php endif; ?>
                 </div>

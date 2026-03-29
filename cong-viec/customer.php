@@ -609,6 +609,93 @@ include 'layout_top.php';
         </div>
     </section>
 
+    <!-- AI ĐÁNH GIÁ KHÁCH HÀNG -->
+    <section style="margin-bottom:20px;">
+        <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-lg);padding:14px 16px;border-left:3px solid #8b5cf6;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <span style="color:#8b5cf6;font-size:12px;font-weight:600;">🤖 AI ĐÁNH GIÁ KHÁCH HÀNG</span>
+                <div style="display:flex;gap:6px;">
+                    <button class="btn btn-ghost btn-sm" onclick="toggleAiPrompt()" style="color:var(--text-muted);font-size:11px;" title="Tùy chỉnh prompt">⚙️</button>
+                    <button class="btn btn-sm" id="ai-analyze-btn" onclick="runAiAnalysis()" style="background:#8b5cf6;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;">
+                        ✨ Phân tích
+                    </button>
+                </div>
+            </div>
+            <!-- Prompt tùy chỉnh (ẩn) -->
+            <div id="ai-prompt-box" style="display:none;margin-bottom:10px;">
+                <textarea id="ai-custom-prompt" class="form-textarea" style="min-height:80px;font-size:12px;" placeholder="Để trống = dùng prompt mặc định. Hoặc nhập prompt riêng..."></textarea>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">💡 Prompt mặc định đánh giá: Mức độ hợp tác, Khả năng thu hồi, Rủi ro, Đề xuất hành động</div>
+            </div>
+            <!-- Loading -->
+            <div id="ai-loading" style="display:none;text-align:center;padding:20px;">
+                <div style="display:inline-block;width:24px;height:24px;border:3px solid #8b5cf620;border-top-color:#8b5cf6;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+                <div style="margin-top:8px;color:var(--text-muted);font-size:13px;">Đang phân tích dữ liệu...</div>
+            </div>
+            <!-- Kết quả -->
+            <div id="ai-result" style="display:none;">
+                <div id="ai-result-content" style="font-size:14px;line-height:1.8;color:var(--text-secondary);white-space:pre-wrap;"></div>
+                <div id="ai-result-meta" style="margin-top:10px;font-size:11px;color:var(--text-muted);border-top:1px solid var(--border-color);padding-top:8px;"></div>
+            </div>
+            <!-- Lỗi -->
+            <div id="ai-error" style="display:none;padding:12px;background:rgba(239,68,68,0.1);border-radius:8px;color:#ef4444;font-size:13px;"></div>
+            <!-- Chưa phân tích -->
+            <div id="ai-empty" style="color:var(--text-muted);font-size:13px;font-style:italic;">Bấm "Phân tích" để AI đánh giá khách hàng dựa trên nhật ký và lịch sử.</div>
+        </div>
+    </section>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+    <script>
+    function toggleAiPrompt(){
+        var el=document.getElementById('ai-prompt-box');
+        el.style.display=el.style.display==='none'?'block':'none';
+    }
+    function runAiAnalysis(){
+        var btn=document.getElementById('ai-analyze-btn');
+        var loading=document.getElementById('ai-loading');
+        var result=document.getElementById('ai-result');
+        var error=document.getElementById('ai-error');
+        var empty=document.getElementById('ai-empty');
+        var prompt=document.getElementById('ai-custom-prompt').value.trim();
+        
+        btn.disabled=true; btn.textContent='⏳ Đang xử lý...';
+        loading.style.display='block';
+        result.style.display='none';
+        error.style.display='none';
+        empty.style.display='none';
+        
+        var fd=new FormData();
+        fd.append('loan_id','<?= $customerId ?>');
+        if(prompt) fd.append('prompt',prompt);
+        
+        fetch('/cong-viec/ai_analyze.php',{method:'POST',body:fd})
+        .then(r=>r.json())
+        .then(data=>{
+            loading.style.display='none';
+            btn.disabled=false; btn.textContent='✨ Phân tích';
+            if(data.error){
+                error.style.display='block';
+                error.textContent='❌ '+data.error;
+            } else {
+                result.style.display='block';
+                // Format markdown-like: **bold**, headers
+                var html=data.analysis
+                    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+                    .replace(/^### (.*?)$/gm,'<div style="font-size:15px;font-weight:700;margin:12px 0 4px;color:var(--text-primary);">$1</div>')
+                    .replace(/^## (.*?)$/gm,'<div style="font-size:16px;font-weight:700;margin:14px 0 6px;color:var(--text-primary);">$1</div>')
+                    .replace(/\n/g,'<br>');
+                document.getElementById('ai-result-content').innerHTML=html;
+                var s=data.data_summary;
+                document.getElementById('ai-result-meta').innerHTML='📊 Dữ liệu: '+s.worklogs+' nhật ký · '+s.transfers+' chuyển phòng · '+s.transactions+' giao dịch TC';
+            }
+        })
+        .catch(e=>{
+            loading.style.display='none';
+            btn.disabled=false; btn.textContent='✨ Phân tích';
+            error.style.display='block';
+            error.textContent='❌ Lỗi kết nối: '+e.message;
+        });
+    }
+    </script>
+
     <!-- THÔNG TIN KHÁCH HÀNG -->
     <section style="margin-bottom:28px;">
         <form method="POST" id="desc-form">
