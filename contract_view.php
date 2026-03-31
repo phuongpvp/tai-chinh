@@ -275,7 +275,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $next_payment_ts = strtotime($max_paid_date) + 86400; // +1 day
                 $next_payment_date = date('Y-m-d', $next_payment_ts);
 
-                $upd = $conn->prepare("UPDATE loans SET paid_until_date = ?, next_payment_date = ? WHERE id = ? AND store_id = ?");
+                $upd = $conn->prepare("UPDATE loans SET paid_until_date = ?, next_payment_date = ?, is_hidden_from_reminder = 0, appointment_date = NULL WHERE id = ? AND store_id = ?");
                 $upd->execute([$max_paid_date, $next_payment_date, $id, $current_store_id]);
             }
         }
@@ -342,7 +342,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Also update next_payment_date
             $period_days = $loan['period_days'] > 0 ? $loan['period_days'] : 30;
             $next_payment = date('Y-m-d', strtotime($to_date . " + $period_days days"));
-            $stmt_next = $conn->prepare("UPDATE loans SET next_payment_date = ? WHERE id = ? AND store_id = ?");
+            $stmt_next = $conn->prepare("UPDATE loans SET next_payment_date = ?, is_hidden_from_reminder = 0, appointment_date = NULL WHERE id = ? AND store_id = ?");
             $stmt_next->execute([$next_payment, $id, $current_store_id]);
         }
 

@@ -21,11 +21,14 @@ try {
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         $configuredChatId = $result['setting_value'] ?? '';
 
-        // Only respond to configured chat ID for security
-        if ($configuredChatId && $chatId != $configuredChatId) {
-            // Ignore messages from unauthorized chats
-            http_response_code(200);
-            exit;
+        // Only respond to configured chat IDs for security
+        if (!empty($configuredChatId)) {
+            $allowedChatIds = array_map('trim', explode(',', $configuredChatId));
+            if (!in_array((string)$chatId, $allowedChatIds)) {
+                // Ignore messages from unauthorized chats
+                http_response_code(200);
+                exit;
+            }
         }
 
         // Handle /check command

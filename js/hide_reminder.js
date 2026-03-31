@@ -5,10 +5,11 @@ document.addEventListener('DOMContentLoaded', function () {
             const loanId = this.dataset.loanId;
             const isHidden = this.checked ? 1 : 0;
 
-            fetch('contract_toggle_hidden.php', {
+            fetch('/contract_toggle_hidden.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: `loan_id=${loanId}&is_hidden=${isHidden}`
             })

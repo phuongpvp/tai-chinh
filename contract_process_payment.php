@@ -57,7 +57,7 @@ try {
 
         $new_next_payment = date('Y-m-d', strtotime($to_date . ' + 1 day'));
 
-        $stmt = $conn->prepare("UPDATE loans SET paid_until_date = ?, next_payment_date = ? WHERE id = ?");
+        $stmt = $conn->prepare("UPDATE loans SET paid_until_date = ?, next_payment_date = ?, is_hidden_from_reminder = 0, appointment_date = NULL WHERE id = ?");
         $stmt->execute([$to_date, $new_next_payment, $loan_id]);
 
         // === AUTO CV: Khi đóng lãi xong → chuyển sang "Đã hoàn thành" ===
@@ -103,7 +103,7 @@ try {
 
             // Roll back paid_until_date to before this period
             $new_paid_until = date('Y-m-d', strtotime($from_date . ' - 1 day'));
-            $stmt = $conn->prepare("UPDATE loans SET paid_until_date = ?, next_payment_date = ? WHERE id = ?");
+            $stmt = $conn->prepare("UPDATE loans SET paid_until_date = ?, next_payment_date = ?, is_hidden_from_reminder = 0, appointment_date = NULL WHERE id = ?");
             $stmt->execute([$new_paid_until, $from_date, $loan_id]);
 
             echo json_encode(['success' => true, 'message' => 'Payment reverted']);

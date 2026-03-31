@@ -70,18 +70,31 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt = $conn->prepare("SELECT setting_value FROM system_settings WHERE setting_key = 'telegram_chat_id'");
             $stmt->execute();
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            $chat_id = $result['setting_value'] ?? '';
+            $chat_ids_str = $result['setting_value'] ?? '';
 
-            if (empty($chat_id)) {
+            if (empty($chat_ids_str)) {
                 $error = "Chưa cấu hình Chat ID!";
             } else {
                 $report = generateDailyReport($conn);
-                $result = sendTelegramMessage($chat_id, $report, $conn);
+                $chat_ids = array_filter(array_map('trim', explode(',', $chat_ids_str)));
+                $all_success = true;
+                $errors = [];
 
-                if ($result['success']) {
+                foreach ($chat_ids as $chat_id) {
+                    $result = sendTelegramMessage($chat_id, $report, $conn);
+                    if (!$result['success']) {
+                        $all_success = false;
+                        $errors[] = "Lỗi ID $chat_id: " . ($result['error'] ?? 'Unknown error');
+                    }
+                }
+
+                if ($all_success && count($errors) === 0) {
                     $success = "Đã gửi báo cáo thành công!";
                 } else {
-                    $error = "Lỗi khi gửi báo cáo: " . ($result['error'] ?? 'Unknown error');
+                    $error = "Lỗi khi gửi: " . implode(' | ', $errors);
+                    if (count($chat_ids) > count($errors)) {
+                        $success = "Đã gửi báo cáo cho một số ID, nhưng có lỗi xảy ra.";
+                    }
                 }
             }
         } elseif ($action === 'set_webhook') {
@@ -105,18 +118,31 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt = $conn->prepare("SELECT setting_value FROM system_settings WHERE setting_key = 'telegram_chat_id'");
             $stmt->execute();
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            $chat_id = $result['setting_value'] ?? '';
+            $chat_ids_str = $result['setting_value'] ?? '';
 
-            if (empty($chat_id)) {
+            if (empty($chat_ids_str)) {
                 $error = "Chưa cấu hình Chat ID!";
             } else {
                 $test_message = "🤖 *Test Connection*\n\nKết nối Telegram Bot thành công!\nThời gian: " . date('d/m/Y H:i:s');
-                $result = sendTelegramMessage($chat_id, $test_message, $conn);
+                $chat_ids = array_filter(array_map('trim', explode(',', $chat_ids_str)));
+                $all_success = true;
+                $errors = [];
 
-                if ($result['success']) {
+                foreach ($chat_ids as $chat_id) {
+                    $result = sendTelegramMessage($chat_id, $test_message, $conn);
+                    if (!$result['success']) {
+                        $all_success = false;
+                        $errors[] = "Lỗi ID $chat_id: " . ($result['error'] ?? 'Unknown error');
+                    }
+                }
+
+                if ($all_success && count($errors) === 0) {
                     $success = "Đã gửi tin nhắn test thành công! Kiểm tra Telegram.";
                 } else {
-                    $error = "Lỗi khi gửi tin nhắn test: " . ($result['error'] ?? 'Unknown error');
+                    $error = "Lỗi khi gửi test: " . implode(' | ', $errors);
+                    if (count($chat_ids) > count($errors)) {
+                        $success = "Đã gửi test cho một số ID, nhưng có lỗi xảy ra.";
+                    }
                 }
             }
         }
@@ -216,8 +242,8 @@ $default_templates = [
                                         <label for="chat_id" class="form-label">Chat ID</label>
                                         <input type="text" class="form-control" id="chat_id" name="chat_id"
                                             value="<?php echo htmlspecialchars($current_settings['telegram_chat_id']); ?>"
-                                            placeholder="123456789">
-                                        <div class="form-text">ID của chat/group nhận báo cáo (dùng @userinfobot để lấy)
+                                            placeholder="123456789,987654321">
+                                        <div class="form-text">ID của chat/group nhận báo cáo (dùng @userinfobot để lấy). <b>Hỗ trợ nhiều ID cách nhau bằng dấu phẩy (,).</b>
                                         </div>
                                     </div>
 
@@ -473,10 +499,11 @@ $default_templates = [
                     }
 
                     // Send AJAX request
-                    fetch('contract_update_appointment.php', {
+                    fetch('../contract_update_appointment.php', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-Requested-With': 'XMLHttpRequest'
                         },
                         body: `loan_id=${loanId}&appointment_date=${appointmentDate}`
                     })
@@ -505,10 +532,11 @@ $default_templates = [
                     const loanId = this.dataset.loanId;
 
                     // Send AJAX request
-                    fetch('contract_update_appointment.php', {
+                    fetch('../contract_update_appointment.php', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-Requested-With': 'XMLHttpRequest'
                         },
                         body: `loan_id=${loanId}&appointment_date=`
                     })
@@ -528,7 +556,7 @@ $default_templates = [
             });
         });
     </script>
-    <script src="js/hide_reminder.js"></script>
+    <script src="/js/hide_reminder.js"></script>
 </body>
 
 </html>
