@@ -68,7 +68,13 @@ include 'layout_top.php';
 <style>
 .action-block {
     background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg);
-    padding: 20px; margin-bottom: 16px;
+    padding: 20px; margin-bottom: 16px; transition: box-shadow 0.2s, opacity 0.2s, transform 0.2s;
+}
+.action-block.dragging {
+    opacity: 0.4; box-shadow: none;
+}
+.action-block.drag-over {
+    border-color: var(--accent-blue); box-shadow: 0 -3px 0 0 var(--accent-blue);
 }
 .action-header {
     display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
@@ -82,6 +88,13 @@ include 'layout_top.php';
 .result-list { margin-left: 24px; }
 .result-item {
     display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+    padding: 4px 0; transition: opacity 0.2s, transform 0.15s;
+}
+.result-item.dragging {
+    opacity: 0.4;
+}
+.result-item.drag-over {
+    border-top: 2px solid var(--accent-blue); margin-top: -2px;
 }
 .result-item input {
     flex: 1; padding: 8px 12px; font-size: 14px;
@@ -90,6 +103,13 @@ include 'layout_top.php';
 }
 .result-item input:focus { border-color: var(--accent-blue); outline: none; }
 .result-item label { font-size: 12px; color: var(--text-muted); white-space: nowrap; display: flex; align-items: center; gap: 4px; }
+.drag-handle {
+    cursor: grab; color: var(--text-muted); font-size: 16px; padding: 4px 2px;
+    user-select: none; flex-shrink: 0; opacity: 0.5; transition: opacity 0.15s, color 0.15s;
+    display: flex; align-items: center;
+}
+.drag-handle:hover { opacity: 1; color: var(--accent-blue); }
+.drag-handle:active { cursor: grabbing; }
 .btn-icon {
     width: 32px; height: 32px; border-radius: var(--radius-md); border: 1px solid var(--border-color);
     background: var(--bg-primary); color: var(--text-muted); cursor: pointer; display: flex;
@@ -127,8 +147,45 @@ function render() {
     configData.forEach((action, aIdx) => {
         const block = document.createElement('div');
         block.className = 'action-block';
+        block.draggable = true;
+        block.dataset.actionIdx = aIdx;
+
+        // Action drag events
+        block.addEventListener('dragstart', e => {
+            if (e.target !== block) return;
+            dragType = 'action';
+            dragFrom = aIdx;
+            block.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', aIdx);
+        });
+        block.addEventListener('dragend', () => {
+            block.classList.remove('dragging');
+            clearAllDragOver();
+            dragType = null; dragFrom = null;
+        });
+        block.addEventListener('dragover', e => {
+            if (dragType !== 'action') return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            clearAllDragOver();
+            block.classList.add('drag-over');
+        });
+        block.addEventListener('dragleave', () => block.classList.remove('drag-over'));
+        block.addEventListener('drop', e => {
+            e.preventDefault();
+            block.classList.remove('drag-over');
+            if (dragType !== 'action' || dragFrom === null) return;
+            const to = aIdx;
+            if (dragFrom !== to) {
+                const item = configData.splice(dragFrom, 1)[0];
+                configData.splice(to, 0, item);
+                render();
+            }
+        });
 
         let html = `<div class="action-header">
+            <span class="drag-handle" title="Kéo để sắp xếp">☰</span>
             <span style="font-size:13px;color:var(--text-muted);font-weight:700;">🎯 Hành động ${aIdx + 1}</span>
             <input type="text" value="${esc(action.action)}" 
                    onchange="configData[${aIdx}].action = this.value" 
@@ -153,7 +210,7 @@ function render() {
         }
 
         // Results
-        html += `<div class="result-list">
+        html += `<div class="result-list" data-action-idx="${aIdx}">
             <div class="result-section-title">📊 Kết quả (khi chọn "${esc(action.action)}")</div>`;
 
         (action.results || []).forEach((result, rIdx) => {
@@ -161,7 +218,13 @@ function render() {
             const showDate = typeof result === 'object' ? (result.show_date || false) : false;
             const showAmount = typeof result === 'object' ? (result.show_amount || false) : false;
 
-            html += `<div class="result-item">
+            html += `<div class="result-item" draggable="true" data-action-idx="${aIdx}" data-result-idx="${rIdx}"
+                ondragstart="resultDragStart(event, ${aIdx}, ${rIdx})"
+                ondragend="resultDragEnd(event)"
+                ondragover="resultDragOver(event, ${aIdx}, ${rIdx})"
+                ondragleave="resultDragLeave(event)"
+                ondrop="resultDrop(event, ${aIdx}, ${rIdx})">
+                <span class="drag-handle" title="Kéo để sắp xếp">☰</span>
                 <span style="color:var(--text-muted);font-size:12px;width:20px;text-align:center;">${String.fromCharCode(65 + rIdx)}</span>
                 <input type="text" value="${esc(label)}" 
                        onchange="updateResult(${aIdx}, ${rIdx}, 'label', this.value)" 
@@ -260,6 +323,62 @@ function prepareSubmit() {
     });
 
     document.getElementById('config-json').value = JSON.stringify(configData);
+}
+
+// === Drag & Drop state ===
+let dragType = null; // 'action' or 'result'
+let dragFrom = null;
+let dragResultFrom = null; // {aIdx, rIdx}
+
+// Clear all drag-over highlights
+function clearAllDragOver() {
+    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+}
+
+// === Result drag handlers ===
+function resultDragStart(e, aIdx, rIdx) {
+    e.stopPropagation();
+    dragType = 'result';
+    dragResultFrom = { aIdx, rIdx };
+    e.target.closest('.result-item').classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', rIdx);
+}
+
+function resultDragEnd(e) {
+    e.target.closest('.result-item')?.classList.remove('dragging');
+    clearAllDragOver();
+    dragType = null;
+    dragResultFrom = null;
+}
+
+function resultDragOver(e, aIdx, rIdx) {
+    if (dragType !== 'result') return;
+    if (dragResultFrom.aIdx !== aIdx) return; // only within same action
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    clearAllDragOver();
+    e.target.closest('.result-item').classList.add('drag-over');
+}
+
+function resultDragLeave(e) {
+    e.target.closest('.result-item')?.classList.remove('drag-over');
+}
+
+function resultDrop(e, aIdx, rIdx) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.target.closest('.result-item')?.classList.remove('drag-over');
+    if (dragType !== 'result' || !dragResultFrom) return;
+    if (dragResultFrom.aIdx !== aIdx) return;
+    const from = dragResultFrom.rIdx;
+    if (from !== rIdx) {
+        const results = configData[aIdx].results;
+        const item = results.splice(from, 1)[0];
+        results.splice(rIdx, 0, item);
+        render();
+    }
 }
 
 // Initial render

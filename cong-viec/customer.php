@@ -43,8 +43,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $phone = trim($_POST['phone'] ?? '');
             $cccd = trim($_POST['cccd'] ?? '');
             $address = trim($_POST['address'] ?? '');
+            $gender = trim($_POST['gender'] ?? '');
+            $dateOfBirth = $_POST['date_of_birth'] ?? null;
             $facebookLink = trim($_POST['facebook_link'] ?? '');
-            $relativesInfo = trim($_POST['relatives_info'] ?? '');
+            
+            $relBo = trim($_POST['rel_bo'] ?? '');
+            $relMe = trim($_POST['rel_me'] ?? '');
+            $relVoChong = trim($_POST['rel_vochong'] ?? '');
+            $relAnhChiEm = trim($_POST['rel_anhchiem'] ?? '');
+            $relDongNghiep = trim($_POST['rel_dongnghiep'] ?? '');
+            $relKhac = trim($_POST['rel_khac'] ?? '');
+            
+            $relArr = [];
+            if ($relBo) $relArr[] = "Bố: " . $relBo;
+            if ($relMe) $relArr[] = "Mẹ: " . $relMe;
+            if ($relVoChong) $relArr[] = "Vợ/chồng: " . $relVoChong;
+            if ($relAnhChiEm) $relArr[] = "Anh/chị/em: " . $relAnhChiEm;
+            if ($relDongNghiep) $relArr[] = "Đồng nghiệp: " . $relDongNghiep;
+            if ($relKhac) $relArr[] = "Khác: " . $relKhac;
+            $relativesInfo = implode("\n", $relArr);
+
             $companyTag = trim($_POST['company_tag'] ?? '');
             $workplace = trim($_POST['workplace'] ?? '');
             $hktt = trim($_POST['hktt'] ?? '');
@@ -52,9 +70,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             
             if (!empty($name)) {
                 $stmt = $pdo->prepare("UPDATE customers SET 
-                    name=?, phone=?, identity_card=?, address=?
+                    name=?, phone=?, identity_card=?, address=?, gender=?, date_of_birth=?
                     WHERE id = (SELECT customer_id FROM loans WHERE id = ?)");
-                $stmt->execute([$name, $phone ?: null, $cccd ?: null, $address ?: null, $customerId]);
+                $stmt->execute([$name, $phone ?: null, $cccd ?: null, $address ?: null, $gender ?: null, $dateOfBirth ?: null, $customerId]);
                 
                 $stmt2 = $pdo->prepare("UPDATE loans SET 
                     cv_due_date=?, cv_assigned_to=?, cv_notes=?, cv_planned_next_room_id=?,
@@ -142,7 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     
                     $pdo->commit();
                     $_SESSION['flash_message'] = 'Đã chuyển khách sang phòng mới';
-                    redirect('customer.php?id=' . $customerId);
+                    redirect('room.php?id=' . $fromRoomId);
                 } catch (Exception $e) {
                     $pdo->rollBack();
                     $_SESSION['flash_message'] = 'Lỗi khi chuyển phòng: ' . $e->getMessage();
@@ -169,14 +187,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $actionType = trim($_POST['action_type'] ?? '');
             $resultType = trim($_POST['result_type'] ?? '');
             $promiseDate = $_POST['promise_date'] ?? null;
-            // Số tiền lãi đã trả
+            // Số tiền lãi
             $amountInterest = $_POST['amount_interest'] ?? null;
             if ($amountInterest !== null && $amountInterest !== '') {
                 $amountInterest = floatval(str_replace([',', '.'], '', $amountInterest));
             } else {
                 $amountInterest = null;
             }
-            // Số tiền gốc đã trả
+            // Số tiền gốc
             $amountPrincipal = $_POST['amount_principal'] ?? null;
             if ($amountPrincipal !== null && $amountPrincipal !== '') {
                 $amountPrincipal = floatval(str_replace([',', '.'], '', $amountPrincipal));
@@ -228,7 +246,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $stmt->execute([$customerId]);
                 }
                 $_SESSION['flash_message'] = 'Đã đánh dấu hoàn thành';
-                redirect('room.php?id=' . ($htRoomId ?: $customer['room_id']));
+                redirect('room.php?id=' . $oldRoomId);
             }
             break;
 
@@ -352,8 +370,8 @@ foreach ($workLogs as $wl) {
     if ($wl['room_name']) $parts[] = 'Phòng làm việc: ' . $wl['room_name'];
     if ($wl['action_type']) $parts[] = 'Việc đã làm: ' . $wl['action_type'];
     if ($wl['result_type']) $parts[] = 'Kết quả: ' . $wl['result_type'];
-    if ($wl['amount']) $parts[] = 'Lãi đã trả: ' . number_format($wl['amount'], 0, ',', '.') . 'đ';
-    if (!empty($wl['amount_principal'])) $parts[] = 'Gốc đã trả: ' . number_format($wl['amount_principal'], 0, ',', '.') . 'đ';
+    if ($wl['amount']) $parts[] = 'Tiền lãi: ' . number_format($wl['amount'], 0, ',', '.') . 'đ';
+    if (!empty($wl['amount_principal'])) $parts[] = 'Tiền gốc: ' . number_format($wl['amount_principal'], 0, ',', '.') . 'đ';
     if ($wl['promise_date']) $parts[] = 'Ngày hẹn: ' . date('d/m/Y', strtotime($wl['promise_date']));
     if ($wl['work_done'] && $wl['work_done'] !== ($wl['action_type'] . ' → ' . $wl['result_type'])) $parts[] = 'Ghi chú: ' . $wl['work_done'];
     $timeline[] = [
@@ -424,7 +442,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'xlsx') {
     }
     
     if ($exportTab === 'worklog') {
-        $rows = [['Ngày', 'Họ tên khách', 'Nhân viên', 'Phòng làm việc', 'Việc đã làm', 'Kết quả', 'Ghi chú', 'Lãi đã trả', 'Gốc đã trả']];
+        $rows = [['Ngày', 'Họ tên khách', 'Nhân viên', 'Phòng làm việc', 'Việc đã làm', 'Kết quả', 'Ghi chú', 'Tiền lãi', 'Tiền gốc']];
         foreach ($workLogs as $wl) {
             $rows[] = [
                 date('d/m/Y', strtotime($wl['log_date'])),
@@ -523,12 +541,18 @@ include 'layout_top.php';
 
     <!-- THÔNG TIN KHÁCH HÀNG MỞ RỘNG -->
     <?php 
-    $hasExtraInfo = $customer['phone'] || $customer['cccd'] || $customer['address'] || $customer['facebook_link'] || $customer['company_tag'] || $customer['relatives_info'];
+    $hasExtraInfo = $customer['phone'] || $customer['cccd'] || $customer['address'] || $customer['facebook_link'] || $customer['company_tag'] || $customer['relatives_info'] || $customer['gender'] || $customer['date_of_birth'];
     if ($hasExtraInfo): ?>
     <section style="margin-bottom:28px;">
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-lg);padding:16px;">
             <?php if ($customer['phone']): ?>
             <div><span style="color:var(--text-muted);font-size:12px;">📱 SĐT</span><br><strong style="font-size:14px;"><?= sanitize($customer['phone']) ?></strong></div>
+            <?php endif; ?>
+            <?php if ($customer['gender']): ?>
+            <div><span style="color:var(--text-muted);font-size:12px;">⚧ Giới tính</span><br><strong style="font-size:14px;"><?= sanitize($customer['gender']) ?></strong></div>
+            <?php endif; ?>
+            <?php if ($customer['date_of_birth']): ?>
+            <div><span style="color:var(--text-muted);font-size:12px;">🎂 Ngày sinh</span><br><strong style="font-size:14px;"><?= date('d/m/Y', strtotime($customer['date_of_birth'])) ?></strong></div>
             <?php endif; ?>
             <?php if ($customer['cccd']): ?>
             <div><span style="color:var(--text-muted);font-size:12px;">🪪 CCCD</span><br><strong style="font-size:14px;"><?= sanitize($customer['cccd']) ?></strong></div>
@@ -824,8 +848,8 @@ include 'layout_top.php';
                         <th>🎯 Việc đã làm</th>
                         <th>📊 Kết quả</th>
                         <th>📝 Ghi chú</th>
-                        <th>💰 Lãi đã trả</th>
-                        <th>💰 Gốc đã trả</th>
+                        <th>💰 Tiền lãi</th>
+                        <th>💰 Tiền gốc</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1106,6 +1130,20 @@ include 'layout_top.php';
                         <input type="text" name="cccd" class="form-input" value="<?= sanitize($customer['cccd'] ?? '') ?>">
                     </div>
                 </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                    <div class="form-group">
+                        <label class="form-label">🎂 Ngày sinh</label>
+                        <input type="date" name="date_of_birth" class="form-input" value="<?= $customer['date_of_birth'] ?? '' ?>">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">⚧ Giới tính</label>
+                        <select name="gender" class="form-select">
+                            <option value="">-- Chọn --</option>
+                            <option value="Nam" <?= ($customer['gender'] ?? '') === 'Nam' ? 'selected' : '' ?>>Nam</option>
+                            <option value="Nữ" <?= ($customer['gender'] ?? '') === 'Nữ' ? 'selected' : '' ?>>Nữ</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="form-group">
                     <label class="form-label">📍 Địa chỉ</label>
                     <input type="text" name="address" class="form-input" value="<?= sanitize($customer['address'] ?? '') ?>">
@@ -1131,8 +1169,57 @@ include 'layout_top.php';
                     </div>
                 </div>
                 <div class="form-group">
+                    <?php
+                    $rawRel = $customer['relatives_info'] ?? '';
+                    $parsedRel = ['bố' => '', 'mẹ' => '', 'vợ/chồng' => '', 'anh/chị/em' => '', 'đồng nghiệp' => '', 'khác' => ''];
+                    $lines = explode("\n", str_replace("\r", "", $rawRel));
+                    $khacLines = [];
+                    foreach ($lines as $line) {
+                        if (str_starts_with($line, 'Bố: ')) {
+                            $parsedRel['bố'] = mb_substr($line, 4);
+                        } elseif (str_starts_with($line, 'Mẹ: ')) {
+                            $parsedRel['mẹ'] = mb_substr($line, 4);
+                        } elseif (str_starts_with($line, 'Vợ/chồng: ')) {
+                            $parsedRel['vợ/chồng'] = mb_substr($line, 10);
+                        } elseif (str_starts_with($line, 'Anh/chị/em: ')) {
+                            $parsedRel['anh/chị/em'] = mb_substr($line, 12);
+                        } elseif (str_starts_with($line, 'Đồng nghiệp: ')) {
+                            $parsedRel['đồng nghiệp'] = mb_substr($line, 13);
+                        } elseif (str_starts_with($line, 'Khác: ')) {
+                            $khacLines[] = mb_substr($line, 6);
+                        } else {
+                            if (trim($line)) $khacLines[] = $line;
+                        }
+                    }
+                    $parsedRel['khac'] = implode("\n", $khacLines);
+                    ?>
                     <label class="form-label">👨‍👩‍👧 Thông tin người thân</label>
-                    <textarea name="relatives_info" class="form-textarea" style="min-height:60px;"><?= sanitize($customer['relatives_info'] ?? '') ?></textarea>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;background:var(--bg-primary);padding:12px;border-radius:var(--radius-md);border:1px solid var(--border-color);">
+                        <div>
+                            <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Bố</label>
+                            <input type="text" name="rel_bo" class="form-input" style="font-size:13px;padding:6px 10px;" value="<?= sanitize($parsedRel['bố']) ?>" placeholder="SĐT, tên...">
+                        </div>
+                        <div>
+                            <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Mẹ</label>
+                            <input type="text" name="rel_me" class="form-input" style="font-size:13px;padding:6px 10px;" value="<?= sanitize($parsedRel['mẹ']) ?>" placeholder="SĐT, tên...">
+                        </div>
+                        <div>
+                            <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Vợ/chồng</label>
+                            <input type="text" name="rel_vochong" class="form-input" style="font-size:13px;padding:6px 10px;" value="<?= sanitize($parsedRel['vợ/chồng']) ?>" placeholder="SĐT, tên...">
+                        </div>
+                        <div>
+                            <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Anh/chị/em</label>
+                            <input type="text" name="rel_anhchiem" class="form-input" style="font-size:13px;padding:6px 10px;" value="<?= sanitize($parsedRel['anh/chị/em']) ?>" placeholder="SĐT, tên...">
+                        </div>
+                        <div style="grid-column:1 / -1;">
+                            <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Đồng nghiệp</label>
+                            <input type="text" name="rel_dongnghiep" class="form-input" style="font-size:13px;padding:6px 10px;" value="<?= sanitize($parsedRel['đồng nghiệp']) ?>" placeholder="SĐT, tên...">
+                        </div>
+                        <div style="grid-column: 1 / -1;">
+                            <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">Khác (hoặc nội dung cũ ghi chú thêm)</label>
+                            <textarea name="rel_khac" class="form-textarea" style="font-size:13px;padding:6px 10px;min-height:50px;" placeholder="Ghi chú thêm..."><?= sanitize($parsedRel['khac']) ?></textarea>
+                        </div>
+                    </div>
                 </div>
                 <hr style="border:none;border-top:1px solid var(--border-color);margin:8px 0 16px;">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
@@ -1290,11 +1377,11 @@ $currentRoomConfig = $allRoomConfigs[$customer['room_id']] ?? [];
                 <div class="form-group" id="wl-amount-group" style="display:none;">
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                         <div>
-                            <label class="form-label">💰 Số tiền lãi đã trả</label>
+                            <label class="form-label">💰 Tiền lãi</label>
                             <input type="text" name="amount_interest" class="form-input" placeholder="VD: 500000">
                         </div>
                         <div>
-                            <label class="form-label">💰 Số tiền gốc đã trả</label>
+                            <label class="form-label">💰 Tiền gốc</label>
                             <input type="text" name="amount_principal" class="form-input" placeholder="VD: 5000000">
                         </div>
                     </div>

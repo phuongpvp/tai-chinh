@@ -15,6 +15,13 @@
 
         <!-- Right Menu -->
         <div class="d-flex align-items-center ms-auto">
+            <!-- CV Quick Switch -->
+            <a href="/cong-viec/" class="btn btn-sm text-white fw-bold me-3 shadow-sm border-0" 
+               style="background: linear-gradient(135deg, #10b981, #059669); border-radius: 6px; padding: 4px 10px;" 
+               title="Chuyển sang nền tảng Công Việc">
+                <i class="fas fa-exchange-alt"></i> CÔNG VIỆC
+            </a>
+
             <!-- Store Selector Dropdown -->
             <div class="dropdown me-3">
                 <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="storeSelector"

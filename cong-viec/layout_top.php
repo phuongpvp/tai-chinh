@@ -111,10 +111,6 @@ $roleLabels = [
                         <span>Vi phạm</span>
                     </a>
                     <?php if ($user['role'] === 'admin'): ?>
-                    <a href="/cong-viec/nhan-vien" class="nav-item <?= ($activePage ?? '') === 'users' ? 'active' : '' ?>">
-                        <span class="nav-icon">👥</span>
-                        <span>Nhân viên</span>
-                    </a>
                     <a href="/cong-viec/quan-ly-phong" class="nav-item <?= ($activePage ?? '') === 'rooms_manage' ? 'active' : '' ?>">
                         <span class="nav-icon">🏢</span>
                         <span>Quản lý phòng</span>

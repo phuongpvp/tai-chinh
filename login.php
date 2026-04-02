@@ -23,7 +23,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $_SESSION['fullname'] = $user['fullname'];
                 $_SESSION['role'] = $user['role'];
                 $_SESSION['store_id'] = $user['store_id'];
-                header("Location: index.php");
+                
+                // Phân luồng đăng nhập
+                if (in_array($user['role'], ['admin', 'super_admin'])) {
+                    header("Location: index.php"); // Admin ở lại Tài Chính
+                } else {
+                    header("Location: cong-viec/index.php"); // Nhân viên bị đẩy sang Công Việc
+                }
                 exit();
             } else {
                 $error = "Mật khẩu không đúng.";

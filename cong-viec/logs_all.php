@@ -72,7 +72,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'xlsx') {
     $dateSuffix = $filterDate . '_' . $filterDateTo;
     
     if ($exportType === 'worklog' || $exportType === 'all') {
-        $rows = [['Ngày', 'Họ tên khách', 'Phòng', 'Nhân viên', 'Việc đã làm', 'Kết quả', 'Ghi chú', 'Lãi đã trả', 'Gốc đã trả']];
+        $rows = [['Ngày', 'Họ tên khách', 'Phòng', 'Nhân viên', 'Việc đã làm', 'Kết quả', 'Ghi chú', 'Tiền lãi', 'Tiền gốc']];
         foreach ($workLogs as $wl) {
             $rows[] = [
                 date('d/m/Y', strtotime($wl['log_date'])),
