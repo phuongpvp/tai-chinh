@@ -319,28 +319,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $uid = $admin ? $admin['id'] : 1;
                         $defRoom = $pdo->query("SELECT id FROM cv_rooms ORDER BY id LIMIT 1")->fetchColumn();
                         
-                        // Build customer name → id map
+                        // Build customer name → loan_id map (cv_work_logs dùng loan_id chứ không phải customer_id)
                         $custIds = [];
-                        $allCusts = $pdo->query("SELECT id, name FROM customers")->fetchAll();
+                        $allCusts = $pdo->query("SELECT l.id as loan_id, c.name FROM loans l JOIN customers c ON l.customer_id = c.id WHERE l.status != 'deleted' ORDER BY l.id DESC")->fetchAll();
                         foreach ($allCusts as $ac) {
-                            $custIds[mb_strtolower($ac['name'])] = $ac['id'];
+                            $key = mb_strtolower(trim($ac['name']));
+                            if (!isset($custIds[$key])) { // Ưu tiên loan mới nhất (DESC)
+                                $custIds[$key] = $ac['loan_id'];
+                            }
                         }
                         
                         $header0 = mb_strtolower(trim($logData[0][0] ?? ''));
                         $isOldFormat = (strpos($header0, 'submission') !== false);
                         
-                        $dateCol    = $isOldFormat ? 2 : 0;
-                        $nameCol    = $isOldFormat ? 3 : 1;
-                        $roomCol    = $isOldFormat ? 4 : 2;
-                        $actionCol  = $isOldFormat ? 5 : 3;
-                        $creativeCol= $isOldFormat ? 6 : 4;
-                        $resultCol  = $isOldFormat ? 7 : 5;
-                        $promiseCol = $isOldFormat ? 8 : 6;
-                        $amountCol  = $isOldFormat ? 9 : 7;
-                        $otherCol   = $isOldFormat ? 10 : 8;
-                        $softCol    = $isOldFormat ? 11 : 9;
-                        $noteCol    = $isOldFormat ? 12 : 10;
-                        $note2Col   = $isOldFormat ? 13 : 11;
+                        // Mapping cột theo file Excel thực tế:
+                        // A=Ghi chú, B=Sáng tạo, C=Việc đã làm, D=Ghi chú thêm,
+                        // E=Tên khách, F=KQ khác, G=Kết quả, H=Ngày cập nhật,
+                        // I=Ngày hẹn, J=PA mềm, K=Số tiền, L=Phòng
+                        $noteCol    = $isOldFormat ? 12 : 0;   // A - Ghi Chú
+                        $creativeCol= $isOldFormat ? 6  : 1;   // B - Công việc sáng tạo
+                        $actionCol  = $isOldFormat ? 5  : 2;   // C - Công việc đã làm
+                        $note2Col   = $isOldFormat ? 13 : 3;   // D - Ghi chú thêm
+                        $nameCol    = $isOldFormat ? 3  : 4;   // E - Họ và tên khách
+                        $otherCol   = $isOldFormat ? 10 : 5;   // F - Kết quả khác
+                        $resultCol  = $isOldFormat ? 7  : 6;   // G - Kết quả thế nào
+                        $dateCol    = $isOldFormat ? 2  : 7;   // H - Ngày cập nhật
+                        $promiseCol = $isOldFormat ? 8  : 8;   // I - Ngày khách hẹn trả
+                        $softCol    = $isOldFormat ? 11 : 9;   // J - Phương án mềm
+                        $amountCol  = $isOldFormat ? 9  : 10;  // K - Số tiền khách trả
+                        $roomCol    = $isOldFormat ? 4  : 11;  // L - Tên Phòng làm việc
                         
                         $imported = 0;
                         for ($i = 1; $i < count($logData); $i++) {
@@ -350,10 +357,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             
                             $dateRaw = trim($row[$dateCol] ?? '');
                             $logDate = null;
-                            if (preg_match('/(\d{2})\/(\d{2})\/(\d{4})/', $dateRaw, $m)) {
+                            if (preg_match('/(\d{1,2})\/(\d{1,2})\/(\d{4})/', $dateRaw, $m)) {
                                 $logDate = "$m[3]-$m[2]-$m[1]";
-                            } elseif (preg_match('/^\d{4}-\d{2}-\d{2}/', $dateRaw)) {
-                                $logDate = substr($dateRaw, 0, 10);
+                            } elseif (preg_match('/(\d{1,2})\s+tháng\s+(\d{1,2}),?\s*(\d{4})/u', $dateRaw, $m)) {
+                                $logDate = sprintf('%04d-%02d-%02d', $m[3], $m[2], $m[1]);
+                            } elseif (preg_match('/^(\d{4}-\d{2}-\d{2})/', $dateRaw, $m)) {
+                                $logDate = $m[1];
                             } elseif (is_numeric($dateRaw) && $dateRaw > 40000) {
                                 $logDate = date('Y-m-d', ($dateRaw - 25569) * 86400);
                             } else {
@@ -389,7 +398,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             
                             $amount = null;
                             if (!empty($amountRaw) && preg_match('/[\d]/', $amountRaw)) {
-                                $amount = floatval(preg_replace('/[^\d.]/', '', str_replace(',', '', $amountRaw)));
+                                // Xóa hết dấu chấm và dấu phẩy (ngăn cách hàng nghìn kiểu VN: 2.000.000)
+                                $amount = floatval(preg_replace('/[^\d]/', '', $amountRaw));
                             }
                             
                             $promiseRaw = trim($row[$promiseCol] ?? '');
