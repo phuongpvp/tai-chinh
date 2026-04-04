@@ -134,7 +134,8 @@ $roleLabels = [
                     </div>
                 </div>
                 <div class="dropdown-menu" id="user-dropdown" style="bottom:calc(100% + 4px);top:auto;">
-                    <a href="logout.php" class="dropdown-item" style="color: var(--accent-red)">🚪 Đăng xuất</a>
+                    <a href="/cong-viec/ho-so" class="dropdown-item">👤 Thông tin cá nhân</a>
+                    <a href="/cong-viec/logout.php" class="dropdown-item" style="color: var(--accent-red)">🚪 Đăng xuất</a>
                 </div>
             </div>
         </aside>
