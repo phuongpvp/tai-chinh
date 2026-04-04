@@ -175,12 +175,6 @@ include 'layout_top.php';
         <a href="<?= $sortBase ?>&sort=due_desc" class="btn <?= $sort === 'due_desc' ? 'btn-primary' : 'btn-secondary' ?> btn-sm" style="font-size:12px;">
             📅 Còn nhiều hạn
         </a>
-        <a href="<?= $sortBase ?>&sort=name_asc" class="btn <?= $sort === 'name_asc' ? 'btn-primary' : 'btn-secondary' ?> btn-sm" style="font-size:12px;">
-            🔤 Tên A→Z
-        </a>
-        <a href="<?= $sortBase ?>&sort=new_first" class="btn <?= $sort === 'new_first' ? 'btn-primary' : 'btn-secondary' ?> btn-sm" style="font-size:12px;">
-            🆕 Mới chuyển đến
-        </a>
     </div>
 
     <!-- CUSTOMER CARDS GRID -->
