@@ -1116,3 +1116,69 @@ Redirect tương đối: customer.php?id=2020&tab=worklogs
 - Nhân viên (`employee`) sẽ **không thấy** section AI đánh giá
 - Bọc bằng `<?php if ($user['role'] === 'admin'): ?>` ... `<?php endif; ?>`
 - Bao gồm: nút Phân tích, ô prompt tùy chỉnh, kết quả AI, trạng thái loading/error
+
+---
+
+### 🎨 Hệ Thống Màu Trạng Thái Động Theo SLA Phòng (04/04/2026)
+
+**Vấn đề cũ:** Ngưỡng cảnh báo (vàng) bị fix cứng `≤ 3 ngày` cho tất cả phòng. Dẫn đến phòng có SLA ngắn (VD: 2-3 ngày) vừa chuyển khách vào đã hiện vàng ngay, gây nhầm lẫn.
+
+**Giải pháp:** Ngưỡng cảnh báo được tính **tương đối theo SLA** mỗi phòng.
+
+#### Công thức
+
+```
+Ngưỡng cảnh báo = max(2, ⌈SLA ÷ 3⌉)
+```
+
+- **PHP**: `$warningDays = ($slaDays > 0) ? max(2, intval(ceil($slaDays / 3))) : 3;`
+- **SQL**: `GREATEST(2, CEIL(r.sla_days / 3))`
+
+#### 3 mức màu
+
+| Màu | Trạng thái | Điều kiện |
+|-----|-----------|-----------|
+| 🔴 Đỏ | Quá hạn | `days < 0` |
+| 🟡 Vàng | Sắp quá hạn | `0 ≤ days < ngưỡng` |
+| 🟢 Xanh | Còn hạn | `days ≥ ngưỡng` |
+
+#### Bảng ví dụ theo từng SLA
+
+| SLA phòng | Ngưỡng vàng | 🟡 Vàng (sắp hết hạn) | 🟢 Xanh (an toàn) |
+|:---------:|:-----------:|:---------------------:|:-----------------:|
+| 2 ngày | < 2 | Còn 0, 1 ngày | Còn 2 ngày |
+| 3 ngày | < 2 | Còn 0, 1 ngày | Còn 2, 3 ngày |
+| 5 ngày | < 2 | Còn 0, 1 ngày | Còn 2 → 5 ngày |
+| 7 ngày | < 3 | Còn 0 → 2 ngày | Còn 3 → 7 ngày |
+| 10 ngày | < 4 | Còn 0 → 3 ngày | Còn 4 → 10 ngày |
+| 14 ngày | < 5 | Còn 0 → 4 ngày | Còn 5 → 14 ngày |
+| 30 ngày | < 10 | Còn 0 → 9 ngày | Còn 10 → 30 ngày |
+
+**Nguyên lý**: Khoảng **1/3 cuối** thời hạn sẽ chuyển sang vàng cảnh báo.
+
+#### Files đã sửa
+
+- `cong-viec/config.php` — Hàm `getStatusColor($days, $slaDays)` thêm tham số `$slaDays`
+- `cong-viec/room.php` — Truyền `$slaDays` vào `getStatusColor()` + SQL filter/stats dùng ngưỡng động
+- `cong-viec/customer.php` — Truyền `$customer['sla_days']` vào `getStatusColor()`
+- `cong-viec/index.php` — SQL dashboard dùng `GREATEST(2, CEIL(r.sla_days / 3))` thay `INTERVAL 3 DAY`
+
+---
+
+### 👤 Trang Hồ Sơ Cá Nhân (04/04/2026)
+
+Thêm trang **Thông tin cá nhân** cho module Công Việc, cho phép user xem và chỉnh sửa thông tin + đổi mật khẩu.
+
+#### Tính năng
+- Xem/sửa **Họ và tên**
+- Xem **Tên đăng nhập** và **Vai trò** (không sửa được)
+- **Đổi mật khẩu**: Nhập mật khẩu cũ + mật khẩu mới + xác nhận
+
+#### Truy cập
+- **URL**: `/cong-viec/ho-so`
+- **Vào từ**: Click tên user ở góc dưới sidebar → chọn **👤 Thông tin cá nhân**
+
+#### Files liên quan
+- `cong-viec/profile.php` — Trang hồ sơ (đã có sẵn, sửa redirect sang clean URL)
+- `cong-viec/layout_top.php` — Thêm link "Thông tin cá nhân" vào dropdown menu user
+- `.htaccess` (root) — Thêm RewriteRule `^cong-viec/ho-so$` → `profile.php`
