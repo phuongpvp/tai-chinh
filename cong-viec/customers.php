@@ -70,7 +70,7 @@ function sortUrl($col) {
     if ($filterRoom !== '') $params['room'] = $filterRoom;
     if ($filterStatus !== '') $params['status'] = $filterStatus;
     if ($filterSearch !== '') $params['q'] = $filterSearch;
-    return 'customers.php?' . http_build_query($params);
+    return '/cong-viec/khach-hang?' . http_build_query($params);
 }
 function sortIcon($col) {
     global $sortBy, $sortDir;
@@ -104,7 +104,7 @@ function sortIcon($col) {
         </select>
         <button type="submit" class="btn btn-primary btn-sm">Lọc</button>
         <?php if ($filterRoom !== '' || $filterStatus !== '' || $filterSearch !== ''): ?>
-            <a href="customers.php" class="btn btn-ghost btn-sm">✕ Xóa lọc</a>
+            <a href="/cong-viec/khach-hang" class="btn btn-ghost btn-sm">✕ Xóa lọc</a>
         <?php endif; ?>
     </form>
 
@@ -121,7 +121,7 @@ function sortIcon($col) {
                 <tr>
                     <th style="width:30px;">#</th>
                     <th><a href="<?= sortUrl('name') ?>" style="color:inherit;text-decoration:none;">Họ và tên<?= sortIcon('name') ?></a></th>
-                    <th>Phòng ban</th>
+                    <th><a href="<?= sortUrl('room_name') ?>" style="color:inherit;text-decoration:none;">Phòng ban<?= sortIcon('room_name') ?></a></th>
                     <th><a href="<?= sortUrl('company_tag') ?>" style="color:inherit;text-decoration:none;">Thuộc Công ty<?= sortIcon('company_tag') ?></a></th>
                     <th>CCCD</th>
                     <th>SĐT Liên hệ</th>
