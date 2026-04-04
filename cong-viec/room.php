@@ -67,9 +67,11 @@ $params = [$roomId];
 if ($filter === 'overdue') {
     $sql .= " AND l.cv_status = 'active' AND l.cv_due_date < CURDATE()";
 } elseif ($filter === 'warning') {
-    $sql .= " AND l.cv_status = 'active' AND l.cv_due_date >= CURDATE() AND l.cv_due_date <= DATE_ADD(CURDATE(), INTERVAL 3 DAY)";
+    $warnDays = max(1, intval($slaDays / 3));
+    $sql .= " AND l.cv_status = 'active' AND l.cv_due_date >= CURDATE() AND l.cv_due_date < DATE_ADD(CURDATE(), INTERVAL $warnDays DAY)";
 } elseif ($filter === 'safe') {
-    $sql .= " AND l.cv_status = 'active' AND (l.cv_due_date > DATE_ADD(CURDATE(), INTERVAL 3 DAY) OR l.cv_due_date IS NULL)";
+    $warnDays = max(1, intval($slaDays / 3));
+    $sql .= " AND l.cv_status = 'active' AND (l.cv_due_date >= DATE_ADD(CURDATE(), INTERVAL $warnDays DAY) OR l.cv_due_date IS NULL)";
 } elseif ($filter === 'active') {
     $sql .= " AND l.cv_status = 'active'";
 } else {
@@ -91,10 +93,11 @@ $customers = $stmt->fetchAll();
 $employees = $pdo->query("SELECT id, fullname, role FROM users WHERE cv_role IS NOT NULL ORDER BY fullname")->fetchAll();
 
 // Thống kê
+$warnDays = max(1, intval($slaDays / 3));
 $stats = $pdo->prepare("SELECT 
     COUNT(*) as total,
     SUM(CASE WHEN cv_due_date < CURDATE() THEN 1 ELSE 0 END) as overdue,
-    SUM(CASE WHEN cv_due_date >= CURDATE() AND cv_due_date <= DATE_ADD(CURDATE(), INTERVAL 3 DAY) THEN 1 ELSE 0 END) as warning
+    SUM(CASE WHEN cv_due_date >= CURDATE() AND cv_due_date < DATE_ADD(CURDATE(), INTERVAL $warnDays DAY) THEN 1 ELSE 0 END) as warning
     FROM loans WHERE cv_room_id = ? AND cv_status IN ('active','overdue','completed') AND status != 'closed'");
 $stats->execute([$roomId]);
 $stats = $stats->fetch();
@@ -161,7 +164,7 @@ include 'layout_top.php';
         <div class="customer-grid">
             <?php foreach ($customers as $c): 
                 $days = getDaysRemaining($c['due_date']);
-                $statusColor = getStatusColor($days);
+                $statusColor = getStatusColor($days, $slaDays);
                 if ($days === null) {
                     $statusText = 'Chưa có hạn';
                 } elseif ($days < 0) {

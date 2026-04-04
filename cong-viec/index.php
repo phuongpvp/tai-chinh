@@ -10,8 +10,8 @@ $roomsQuery = "
     SELECT r.*,
         (SELECT COUNT(*) FROM loans l WHERE l.cv_room_id = r.id AND l.cv_status = 'active' AND l.status != 'closed') as total_customers,
         (SELECT COUNT(*) FROM loans l WHERE l.cv_room_id = r.id AND l.cv_status = 'active' AND l.status != 'closed' AND l.cv_due_date < CURDATE()) as overdue_count,
-        (SELECT COUNT(*) FROM loans l WHERE l.cv_room_id = r.id AND l.cv_status = 'active' AND l.status != 'closed' AND l.cv_due_date >= CURDATE() AND l.cv_due_date <= DATE_ADD(CURDATE(), INTERVAL 3 DAY)) as warning_count,
-        (SELECT COUNT(*) FROM loans l WHERE l.cv_room_id = r.id AND l.cv_status = 'active' AND l.status != 'closed' AND (l.cv_due_date > DATE_ADD(CURDATE(), INTERVAL 3 DAY) OR l.cv_due_date IS NULL)) as safe_count
+        (SELECT COUNT(*) FROM loans l WHERE l.cv_room_id = r.id AND l.cv_status = 'active' AND l.status != 'closed' AND l.cv_due_date >= CURDATE() AND l.cv_due_date < DATE_ADD(CURDATE(), INTERVAL GREATEST(1, FLOOR(r.sla_days / 3)) DAY)) as warning_count,
+        (SELECT COUNT(*) FROM loans l WHERE l.cv_room_id = r.id AND l.cv_status = 'active' AND l.status != 'closed' AND (l.cv_due_date >= DATE_ADD(CURDATE(), INTERVAL GREATEST(1, FLOOR(r.sla_days / 3)) DAY) OR l.cv_due_date IS NULL)) as safe_count
     FROM cv_rooms r
     WHERE r.is_archive = 0
     ORDER BY r.sort_order, r.name
@@ -23,8 +23,8 @@ $archiveRooms = $pdo->query("
     SELECT r.*,
         (SELECT COUNT(*) FROM loans l WHERE l.cv_room_id = r.id AND l.cv_status = 'active' AND l.status != 'closed') as total_customers,
         (SELECT COUNT(*) FROM loans l WHERE l.cv_room_id = r.id AND l.cv_status = 'active' AND l.status != 'closed' AND l.cv_due_date < CURDATE()) as overdue_count,
-        (SELECT COUNT(*) FROM loans l WHERE l.cv_room_id = r.id AND l.cv_status = 'active' AND l.status != 'closed' AND l.cv_due_date >= CURDATE() AND l.cv_due_date <= DATE_ADD(CURDATE(), INTERVAL 3 DAY)) as warning_count,
-        (SELECT COUNT(*) FROM loans l WHERE l.cv_room_id = r.id AND l.cv_status = 'active' AND l.status != 'closed' AND (l.cv_due_date > DATE_ADD(CURDATE(), INTERVAL 3 DAY) OR l.cv_due_date IS NULL)) as safe_count
+        (SELECT COUNT(*) FROM loans l WHERE l.cv_room_id = r.id AND l.cv_status = 'active' AND l.status != 'closed' AND l.cv_due_date >= CURDATE() AND l.cv_due_date < DATE_ADD(CURDATE(), INTERVAL GREATEST(1, FLOOR(r.sla_days / 3)) DAY)) as warning_count,
+        (SELECT COUNT(*) FROM loans l WHERE l.cv_room_id = r.id AND l.cv_status = 'active' AND l.status != 'closed' AND (l.cv_due_date >= DATE_ADD(CURDATE(), INTERVAL GREATEST(1, FLOOR(r.sla_days / 3)) DAY) OR l.cv_due_date IS NULL)) as safe_count
     FROM cv_rooms r 
     WHERE r.is_archive = 1
     ORDER BY r.sort_order, r.name

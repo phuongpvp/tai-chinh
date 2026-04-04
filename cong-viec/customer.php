@@ -580,7 +580,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'xlsx') {
 
 // Tính trạng thái
 $days = getDaysRemaining($customer['due_date']);
-$statusColor = getStatusColor($days);
+$statusColor = getStatusColor($days, intval($customer['sla_days'] ?? 0));
 $statusText = getStatusLabel($days);
 
 // Planned next room name
