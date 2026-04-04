@@ -766,6 +766,7 @@ include 'layout_top.php';
         </div>
     </section>
 
+    <?php if ($user['role'] === 'admin'): ?>
     <!-- AI ĐÁNH GIÁ KHÁCH HÀNG -->
     <section style="margin-bottom:20px;">
         <div
@@ -812,6 +813,7 @@ include 'layout_top.php';
                 đánh giá khách hàng dựa trên nhật ký và lịch sử.</div>
         </div>
     </section>
+    <?php endif; ?>
     <style>
         @keyframes spin {
             to {
