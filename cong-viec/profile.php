@@ -28,12 +28,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!password_verify($currentPass, $dbUser['password'])) {
             $_SESSION['flash_message'] = 'Mật khẩu hiện tại không đúng!';
             $_SESSION['flash_type'] = 'error';
-            redirect('profile.php');
+            redirect('/cong-viec/ho-so');
         }
         if ($newPass !== $confirmPass) {
             $_SESSION['flash_message'] = 'Mật khẩu mới không khớp!';
             $_SESSION['flash_type'] = 'error';
-            redirect('profile.php');
+            redirect('/cong-viec/ho-so');
         }
         $hash = password_hash($newPass, PASSWORD_DEFAULT);
         $stmt = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $_SESSION['flash_message'] = 'Đã cập nhật thông tin';
-    redirect('profile.php');
+    redirect('/cong-viec/ho-so');
 }
 
 include 'layout_top.php';
