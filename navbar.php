@@ -1,5 +1,5 @@
 <!-- Navbar included in pages -->
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="/style.css">
 <nav class="navbar navbar-expand-lg navbar-custom mb-3">
     <div class="container-fluid">
         <a class="navbar-brand" href="index.php" style="font-weight:bold; color:#d9534f;"> <i class="fas fa-home"></i> Trang chủ</a>

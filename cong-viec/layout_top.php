@@ -108,7 +108,7 @@ $roleLabels = [
                     <div class="nav-section-title">Quản lý</div>
                     <a href="/cong-viec/vi-pham" class="nav-item <?= ($activePage ?? '') === 'violations' ? 'active' : '' ?>">
                         <span class="nav-icon">⚠️</span>
-                        <span>Vi phạm</span>
+                        <span>Vi phạm <small style="color:var(--text-muted);font-size:11px;">(Đang PT)</small></span>
                     </a>
                     <?php if ($user['role'] === 'admin'): ?>
                     <a href="/cong-viec/quan-ly-phong" class="nav-item <?= ($activePage ?? '') === 'rooms_manage' ? 'active' : '' ?>">

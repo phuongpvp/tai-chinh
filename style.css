@@ -177,23 +177,157 @@ body {
     .main-content {
         margin-left: 0;
         margin-top: 56px;
+        padding: 10px !important;
+        padding-top: 15px !important;
     }
 
     .sidebar {
-        /* When collapsed on mobile, it should be full width or fixed width slide-out */
-        width: 260px;
+        position: fixed !important;
+        top: 56px !important;
+        left: 0;
+        bottom: 0;
+        width: 280px !important;
+        max-width: 85vw;
         z-index: 1050;
-        /* Above content and below navbar */
-        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
+        box-shadow: 3px 0 10px rgba(0, 0, 0, 0.3);
         background-color: #ffffff !important;
-        /* Solid white background */
-        display: none;
-        /* Default hidden */
+        overflow-y: auto;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
     }
 
-    .sidebar.show {
+    .sidebar.collapse:not(.show) {
         display: block !important;
-        background-color: #ffffff !important;
+        transform: translateX(-100%);
+    }
+
+    .sidebar.show,
+    .sidebar.collapsing {
+        display: block !important;
+        transform: translateX(0) !important;
+    }
+
+    /* Stat boxes - stack neatly */
+    .stat-box {
+        padding: 10px !important;
+        margin-bottom: 8px;
+    }
+    .stat-value {
+        font-size: 14px !important;
+    }
+    .stat-label {
+        font-size: 10px !important;
+    }
+
+    /* Filter bar wrap */
+    .filter-bar .row,
+    .p-3.bg-light .row {
+        flex-direction: column;
+    }
+    .filter-bar .col-auto,
+    .p-3.bg-light .col-auto {
+        width: 100% !important;
+        margin-bottom: 6px;
+    }
+    .filter-bar input,
+    .filter-bar select,
+    .p-3.bg-light input,
+    .p-3.bg-light select {
+        width: 100% !important;
+    }
+    .p-3.bg-light .btn {
+        width: 100%;
+        margin-left: 0 !important;
+        margin-bottom: 4px;
+    }
+
+    /* Table mobile */
+    .table-custom {
+        font-size: 11px !important;
+    }
+    .table-custom thead th {
+        font-size: 10px !important;
+        padding: 4px 2px !important;
+        white-space: nowrap;
+    }
+    .table-custom tbody td {
+        padding: 4px 3px !important;
+        font-size: 11px !important;
+    }
+
+    /* Cards & modals */
+    .card-header {
+        font-size: 13px !important;
+        padding: 8px 12px !important;
+    }
+    .modal-dialog.modal-xl {
+        max-width: 95vw !important;
+        margin: 10px auto !important;
+    }
+
+    /* Breadcrumb */
+    .breadcrumb {
+        font-size: 12px;
+    }
+
+    /* Header compact */
+    .navbar-brand {
+        font-size: 0.9rem !important;
+    }
+    .navbar .btn-sm {
+        font-size: 11px !important;
+        padding: 2px 6px !important;
+    }
+    .navbar .dropdown-toggle {
+        font-size: 12px !important;
+    }
+
+    /* Icon buttons in table */
+    .icon-btn {
+        padding: 2px 4px !important;
+        font-size: 10px !important;
+    }
+    .btn-sm {
+        font-size: 11px !important;
+        padding: 3px 6px !important;
+    }
+
+    /* Hide less important columns on very small screens */
+    .d-flex.justify-content-center {
+        flex-wrap: wrap;
+        gap: 2px !important;
+    }
+}
+
+/* Extra small screens (phones < 480px) */
+@media (max-width: 480px) {
+    .main-content {
+        padding: 6px !important;
+        padding-top: 10px !important;
+    }
+    .stat-box .row {
+        flex-direction: column;
+    }
+    .stat-box .col-6 {
+        width: 100% !important;
+        border-right: none !important;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 6px;
+        margin-bottom: 6px;
+    }
+    .stat-box .col-6:last-child {
+        border-bottom: none;
+    }
+    .stat-value {
+        font-size: 13px !important;
+    }
+    .table-custom thead th,
+    .table-custom tbody td {
+        font-size: 10px !important;
+        padding: 3px 2px !important;
+    }
+    .navbar-brand span {
+        font-size: 0.85rem !important;
     }
 }
 

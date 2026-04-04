@@ -33,8 +33,8 @@ $today = date('Y-m-d');
 $results = ['date' => $today, 'assigned' => 0, 'skipped' => 0, 'errors' => 0, 'details' => []];
 
 try {
-    // 0) Backfill: Cập nhật cv_company_tag cho loans đã ở CV nhưng chưa có tag
-    $pdo->exec("UPDATE loans l JOIN stores s ON l.store_id = s.id SET l.cv_company_tag = s.name WHERE l.cv_room_id IS NOT NULL AND l.cv_room_id > 0 AND (l.cv_company_tag IS NULL OR l.cv_company_tag = '')");
+    // 0) Sync: Luôn cập nhật cv_company_tag = đúng tên cửa hàng bên TC
+    $pdo->exec("UPDATE loans l JOIN stores s ON l.store_id = s.id SET l.cv_company_tag = s.name WHERE l.cv_room_id IS NOT NULL AND l.cv_room_id > 0");
 
     // 1) Tìm phòng "Tín dụng 1"
     $roomStmt = $pdo->query("SELECT id, name, sla_days FROM cv_rooms WHERE name LIKE '%Tín dụng 1%' LIMIT 1");

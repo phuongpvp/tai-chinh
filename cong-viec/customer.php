@@ -173,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     }
 
                     // 4) Update customer
-                    $updateSql = "UPDATE loans SET cv_room_id=?, cv_transfer_date=?, cv_planned_next_room_id=NULL";
+                    $updateSql = "UPDATE loans SET cv_room_id=?, cv_transfer_date=?, cv_status='active', cv_planned_next_room_id=NULL";
                     $updateParams = [$newRoomId, $now];
                     if ($newDueDate) {
                         $updateSql .= ", cv_due_date=?";
@@ -269,7 +269,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $htRoom = $pdo->query("SELECT id FROM cv_rooms WHERE name LIKE '%hoàn thành%' LIMIT 1")->fetch(PDO::FETCH_ASSOC);
                 $htRoomId = $htRoom ? intval($htRoom['id']) : null;
 
-                $stmt = $pdo->prepare("UPDATE loans SET cv_room_id = ?, cv_transfer_date = ? WHERE id = ?");
+                $stmt = $pdo->prepare("UPDATE loans SET cv_room_id = ?, cv_transfer_date = ?, cv_status = 'completed' WHERE id = ?");
                 if ($htRoomId) {
                     $stmt->execute([$htRoomId, date('Y-m-d'), $customerId]);
                     // Log chuyển phòng
@@ -432,7 +432,7 @@ $workLogs = $pdo->prepare("SELECT wl.*, u.fullname as user_name, r.name as room_
     JOIN users u ON wl.user_id = u.id
     LEFT JOIN cv_rooms r ON wl.room_id = r.id
     WHERE wl.loan_id = ?
-    ORDER BY wl.log_date ASC, wl.created_at ASC");
+    ORDER BY wl.log_date DESC, wl.created_at DESC");
 $workLogs->execute([$customerId]);
 $workLogs = $workLogs->fetchAll();
 

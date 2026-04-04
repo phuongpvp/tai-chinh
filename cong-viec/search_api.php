@@ -17,7 +17,9 @@ if (mb_strlen($q) < 1) {
 
 $searchTerm = "%$q%";
 $stmt = $pdo->prepare("
-    SELECT l.id, c.name, c.phone, l.cv_status as status, r.name as room_name, r.icon as room_icon
+    SELECT l.id, c.name, c.phone, l.cv_status as status,
+        CASE WHEN l.cv_status = 'active' AND l.cv_room_id IS NOT NULL THEN r.name ELSE NULL END as room_name,
+        CASE WHEN l.cv_status = 'active' AND l.cv_room_id IS NOT NULL THEN r.icon ELSE NULL END as room_icon
     FROM loans l
     LEFT JOIN customers c ON l.customer_id = c.id
     LEFT JOIN cv_rooms r ON l.cv_room_id = r.id

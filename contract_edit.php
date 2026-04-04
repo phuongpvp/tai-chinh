@@ -89,11 +89,12 @@ $t_days = ceil(abs(strtotime($loan['end_date']) - strtotime($loan['start_date'])
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sửa Hợp Đồng -
         <?php echo $loan['loan_code']; ?>
     </title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css"> <!-- Reuse style -->
+    <link rel="stylesheet" href="/style.css"> <!-- Reuse style -->
 </head>
 
 <body class="bg-light">
