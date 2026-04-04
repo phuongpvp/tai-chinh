@@ -4,7 +4,7 @@ requireLogin();
 
 $customerId = intval($_GET['id'] ?? 0);
 if (!$customerId)
-    redirect('index.php');
+    redirect('/cong-viec/tong-quan');
 
 $user = cvGetUser();
 
@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $customerId
                 ]);
                 $_SESSION['flash_message'] = 'Đã cập nhật thông tin khách hàng';
-                redirect('customer.php?id=' . $customerId);
+                redirect('/cong-viec/khach-hang/' . $customerId);
             }
             break;
 
@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt = $pdo->prepare("UPDATE loans SET cv_description = ? WHERE id = ?");
             $stmt->execute([$desc ?: null, $customerId]);
             $_SESSION['flash_message'] = 'Đã cập nhật mô tả khách hàng';
-            redirect('customer.php?id=' . $customerId);
+            redirect('/cong-viec/khach-hang/' . $customerId);
             break;
 
         case 'change_room':
@@ -130,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         ]);
                     $_SESSION['flash_message'] = 'Không thể chuyển sang cùng phòng!';
                     $_SESSION['flash_type'] = 'error';
-                    redirect('customer.php?id=' . $customerId);
+                    redirect('/cong-viec/khach-hang/' . $customerId);
                 }
 
                 // === CHỐNG DUPLICATE (60 giây) ===
@@ -148,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         ]);
                     $_SESSION['flash_message'] = 'Thao tác trùng lặp! Vui lòng đợi 60 giây.';
                     $_SESSION['flash_type'] = 'warning';
-                    redirect('customer.php?id=' . $customerId);
+                    redirect('/cong-viec/khach-hang/' . $customerId);
                 }
 
                 // === TRANSACTION: Chuyển phòng ===
@@ -190,7 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $pdo->rollBack();
                     $_SESSION['flash_message'] = 'Lỗi khi chuyển phòng: ' . $e->getMessage();
                     $_SESSION['flash_type'] = 'error';
-                    redirect('customer.php?id=' . $customerId);
+                    redirect('/cong-viec/khach-hang/' . $customerId);
                 }
             }
             break;
@@ -201,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt = $pdo->prepare("INSERT INTO cv_comments (loan_id, user_id, content) VALUES (?, ?, ?)");
                 $stmt->execute([$customerId, $user['id'], $content]);
                 $_SESSION['flash_message'] = 'Đã thêm bình luận';
-                redirect('customer.php?id=' . $customerId);
+                redirect('/cong-viec/khach-hang/' . $customerId);
             }
             break;
 
@@ -250,7 +250,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $amountPrincipal
                 ]);
                 $_SESSION['flash_message'] = 'Đã lưu nhật ký làm việc';
-                redirect('customer.php?id=' . $customerId . '&tab=worklogs');
+                redirect('/cong-viec/khach-hang/' . $customerId . '?tab=worklogs');
             }
             break;
 
@@ -259,7 +259,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt = $pdo->prepare("UPDATE loans SET cv_pinned_note = ? WHERE id = ?");
             $stmt->execute([$pinnedNote, $customerId]);
             $_SESSION['flash_message'] = 'Đã cập nhật nội dung lưu ý';
-            redirect('customer.php?id=' . $customerId);
+            redirect('/cong-viec/khach-hang/' . $customerId);
             break;
 
         case 'mark_completed':
@@ -368,7 +368,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
             }
             $uploadFolder = $_POST['category'] ?? '';
-            redirect('customer.php?id=' . $customerId . '&tab=files' . ($uploadFolder ? '&folder=' . $uploadFolder : ''));
+            redirect('/cong-viec/khach-hang/' . $customerId . '?tab=files' . ($uploadFolder ? '&folder=' . $uploadFolder : ''));
             break;
 
         case 'delete_file':
@@ -389,7 +389,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
             }
             $delFolder = $_POST['folder'] ?? '';
-            redirect('customer.php?id=' . $customerId . '&tab=files' . ($delFolder ? '&folder=' . $delFolder : ''));
+            redirect('/cong-viec/khach-hang/' . $customerId . '?tab=files' . ($delFolder ? '&folder=' . $delFolder : ''));
             break;
     }
 }
@@ -1650,7 +1650,7 @@ include 'layout_top.php';
 <?php
 // Load worklog_config cho TẤT CẢ phòng (không chỉ phòng hiện tại)
 $allRoomConfigs = [];
-$cfgStmt = $pdo->query("SELECT id, worklog_config FROM cv_rooms WHERE is_archive = 0");
+$cfgStmt = $pdo->query("SELECT id, worklog_config FROM cv_rooms");
 while ($row = $cfgStmt->fetch()) {
     $allRoomConfigs[$row['id']] = json_decode($row['worklog_config'] ?: '[]', true) ?: [];
 }
@@ -1675,8 +1675,6 @@ $currentRoomConfig = $allRoomConfigs[$customer['room_id']] ?? [];
                     <select name="log_room_id" class="form-input" style="font-size:13px;" id="wl-room-select"
                         onchange="wlSwitchRoom(this.value)">
                         <?php foreach ($rooms as $rm): ?>
-                            <?php if (!empty($rm['is_archive']))
-                                continue; ?>
                             <option value="<?= $rm['id'] ?>" <?= $rm['id'] == $customer['room_id'] ? 'selected' : '' ?>>
                                 <?= $rm['icon'] ?>     <?= sanitize($rm['name']) ?>
                             </option>

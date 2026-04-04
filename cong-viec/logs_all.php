@@ -190,7 +190,7 @@ include 'layout_top.php';
                         <tr style="border-bottom:1px solid var(--border-color);" onmouseenter="this.style.background='var(--bg-card-hover)'" onmouseleave="this.style.background=''">
                             <td style="padding:10px 12px;white-space:nowrap;"><?= date('d/m/Y', strtotime($wl['log_date'])) ?></td>
                             <td style="padding:10px 12px;">
-                                <a href="customer.php?id=<?= $wl['loan_id'] ?>" style="color:var(--accent-blue);text-decoration:none;font-weight:600;">
+                                <a href="/cong-viec/khach-hang/<?= $wl['loan_id'] ?>" style="color:var(--accent-blue);text-decoration:none;font-weight:600;">
                                     <?= sanitize($wl['customer_name'] ?? '—') ?>
                                 </a>
                             </td>
@@ -250,7 +250,7 @@ include 'layout_top.php';
                         <tr style="border-bottom:1px solid var(--border-color);" onmouseenter="this.style.background='var(--bg-card-hover)'" onmouseleave="this.style.background=''">
                             <td style="padding:10px 12px;white-space:nowrap;"><?= date('d/m/Y H:i', strtotime($tl['transferred_at'])) ?></td>
                             <td style="padding:10px 12px;">
-                                <a href="customer.php?id=<?= $tl['loan_id'] ?>" style="color:var(--accent-blue);text-decoration:none;font-weight:600;">
+                                <a href="/cong-viec/khach-hang/<?= $tl['loan_id'] ?>" style="color:var(--accent-blue);text-decoration:none;font-weight:600;">
                                     <?= sanitize($tl['customer_name'] ?? '—') ?>
                                 </a>
                             </td>

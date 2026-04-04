@@ -133,10 +133,10 @@ function sortIcon($col) {
             </thead>
             <tbody>
                 <?php foreach ($customers as $i => $c): ?>
-                <tr style="cursor:pointer;" onclick="window.location='customer.php?id=<?= $c['id'] ?>'">
+                <tr style="cursor:pointer;" onclick="window.location='/cong-viec/khach-hang/<?= $c['id'] ?>'">
                     <td class="row-num" style="color:var(--text-muted);font-size:12px;"><?= $i + 1 ?></td>
                     <td>
-                        <a href="customer.php?id=<?= $c['id'] ?>" style="color:var(--accent-blue);text-decoration:none;font-weight:600;white-space:nowrap;" onclick="event.stopPropagation();">
+                        <a href="/cong-viec/khach-hang/<?= $c['id'] ?>" style="color:var(--accent-blue);text-decoration:none;font-weight:600;white-space:nowrap;" onclick="event.stopPropagation();">
                             <?= sanitize($c['name']) ?>
                         </a>
                     </td>
