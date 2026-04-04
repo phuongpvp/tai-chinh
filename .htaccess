@@ -106,3 +106,7 @@ RewriteRule ^cong-viec/cau-hinh-phong/([0-9]+)$ /cong-viec/room_config.php?id=$1
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^cong-viec/cai-dat-ai$ /cong-viec/ai_settings.php [L,QSA]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^cong-viec/ho-so$ /cong-viec/profile.php [L,QSA]
