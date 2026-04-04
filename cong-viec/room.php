@@ -149,7 +149,7 @@ include 'layout_top.php';
             🟡 Sắp quá hạn (<?= $stats['warning'] ?>)
         </a>
         <a href="?id=<?= $roomId ?>&filter=safe" class="btn <?= $filter === 'safe' ? 'btn-primary' : 'btn-secondary' ?> btn-sm" style="text-decoration:none">
-            🟢 Còn hạn
+            🟢 Còn hạn (<?= $stats['total'] - $stats['overdue'] - $stats['warning'] ?>)
         </a>
     </div>
 
