@@ -1,6 +1,6 @@
 # 📋 Hệ Thống Quản Lý Công Việc — Tài Liệu Kỹ Thuật
 
-> Cập nhật: 28/03/2026 | Phiên bản: 1.2.0 | PHP + MySQL (Shared Hosting)
+> Cập nhật: 04/04/2026 | Phiên bản: 1.2.0 | PHP + MySQL (Shared Hosting)
 
 ---
 
@@ -1053,3 +1053,66 @@ SET l.cv_company_tag = s.name
 **Chi tiết kỹ thuật:**
 - File: `cong-viec/customer.php`
 - Cập nhật dòng lệnh SQL fetch `$workLogs`: từ `ORDER BY wl.log_date ASC, wl.created_at ASC` thành `ORDER BY wl.log_date DESC, wl.created_at DESC`.
+
+---
+
+### 🔗 Sửa Lỗi 404 Redirect — Clean URL (04/04/2026)
+
+**Vấn đề:** Sau khi triển khai URL thân thiện (`.htaccess` rewrite), tất cả các lệnh `redirect()` trong PHP vẫn dùng **đường dẫn tương đối** (VD: `customer.php?id=2020`). Khi user truy cập trang qua clean URL `/cong-viec/khach-hang/2020`, trình duyệt hiểu đường dẫn hiện tại là `/cong-viec/khach-hang/`, nên redirect tương đối bị ghép sai:
+
+```
+Trang hiện tại: /cong-viec/khach-hang/2020
+Redirect tương đối: customer.php?id=2020&tab=worklogs
+→ Trình duyệt ghép: /cong-viec/khach-hang/customer.php?id=2020&tab=worklogs
+→ 404 Not Found (thư mục khach-hang không tồn tại trên server)
+```
+
+**Giải pháp:** Đổi tất cả redirect trong các file PHP sang **đường dẫn tuyệt đối clean URL**:
+
+| Redirect cũ (relative) | Redirect mới (absolute clean URL) |
+|---|---|
+| `redirect('customer.php?id=' . $id)` | `redirect('/cong-viec/khach-hang/' . $id)` |
+| `redirect('customer.php?id=' . $id . '&tab=worklogs')` | `redirect('/cong-viec/khach-hang/' . $id . '?tab=worklogs')` |
+| `redirect('customer.php?id=' . $id . '&tab=files')` | `redirect('/cong-viec/khach-hang/' . $id . '?tab=files')` |
+| `redirect('room.php?id=' . $id)` | `redirect('/cong-viec/phong/' . $id)` |
+| `redirect('index.php')` | `redirect('/cong-viec/tong-quan')` |
+| `redirect('worklog_add.php')` | `redirect('/cong-viec/nhat-ky')` |
+| `redirect('rooms_manage.php')` | `redirect('/cong-viec/quan-ly-phong')` |
+| `redirect('room_config.php?id=' . $id)` | `redirect('/cong-viec/cau-hinh-phong/' . $id)` |
+
+**Files đã sửa:**
+- `cong-viec/customer.php` — 13 redirect (worklog, comment, room change, upload, delete, pinned, info...)
+- `cong-viec/room.php` — 3 redirect (fallback + add customer + room link)
+- `cong-viec/worklog_add.php` — 2 redirect (success + error)
+- `cong-viec/rooms_manage.php` — 3 redirect (add, edit, delete room)
+- `cong-viec/room_config.php` — 3 redirect (fallback + save config)
+- `cong-viec/customers.php` — sortUrl() + "Xóa lọc" link
+- `cong-viec/logs_all.php` — 2 link (worklog + transfer customer links)
+
+**Lưu ý bảo trì:**
+> ⚠️ Khi thêm redirect mới trong module `cong-viec`, **LUÔN dùng đường dẫn tuyệt đối clean URL** thay vì tên file PHP. Tham khảo bảng mapping URL ở mục "🔗 URL Thân Thiện" phía trên.
+
+---
+
+### 📊 Sắp Xếp Cột Phòng Ban — Danh Sách Khách Hàng (04/04/2026)
+
+**Thay đổi:** Thêm chức năng **sắp xếp (sort)** cho cột **"Phòng ban"** trong trang Danh sách khách hàng (`cong-viec/customers.php`), giống cột "Thuộc Công ty" đã có.
+
+- Click header "Phòng ban" → sắp xếp A→Z (▲)
+- Click lần nữa → sắp xếp Z→A (▼)
+- Sort key: `room_name` → SQL: `ORDER BY r.name ASC/DESC`
+
+**Chi tiết kỹ thuật:**
+- File: `cong-viec/customers.php`
+- Thêm `sortUrl('room_name')` + `sortIcon('room_name')` vào header `<th>` cột Phòng ban (dòng ~124)
+- Key `room_name` đã có sẵn trong `$allowedSorts` và `$sortMap` → không cần sửa backend
+
+---
+
+### 🔒 Giới Hạn AI Đánh Giá — Chỉ Admin (04/04/2026)
+
+**Thay đổi:** Section **"🤖 AI ĐÁNH GIÁ KHÁCH HÀNG"** trong trang chi tiết khách hàng (`cong-viec/customer.php`) giờ chỉ hiển thị cho tài khoản có role **admin**.
+
+- Nhân viên (`employee`) sẽ **không thấy** section AI đánh giá
+- Bọc bằng `<?php if ($user['role'] === 'admin'): ?>` ... `<?php endif; ?>`
+- Bao gồm: nút Phân tích, ô prompt tùy chỉnh, kết quả AI, trạng thái loading/error
