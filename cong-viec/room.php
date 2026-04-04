@@ -83,7 +83,17 @@ if ($search) {
     $params[] = '%' . $search . '%';
 }
 
-$sql .= " ORDER BY l.cv_due_date ASC, c.name ASC";
+// Sắp xếp
+$sort = $_GET['sort'] ?? 'due_asc';
+$sortOptions = [
+    'due_asc'  => 'l.cv_due_date ASC, c.name ASC',
+    'due_desc' => 'l.cv_due_date DESC, c.name ASC',
+    'name_asc' => 'c.name ASC',
+    'name_desc'=> 'c.name DESC',
+    'new_first'=> 'l.cv_transfer_date DESC, c.name ASC',
+];
+$orderBy = $sortOptions[$sort] ?? $sortOptions['due_asc'];
+$sql .= " ORDER BY $orderBy";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
@@ -150,6 +160,26 @@ include 'layout_top.php';
         </a>
         <a href="?id=<?= $roomId ?>&filter=safe" class="btn <?= $filter === 'safe' ? 'btn-primary' : 'btn-secondary' ?> btn-sm" style="text-decoration:none">
             🟢 Còn hạn (<?= $stats['total'] - $stats['overdue'] - $stats['warning'] ?>)
+        </a>
+    </div>
+
+    <!-- SORT BUTTONS -->
+    <?php
+    $sortBase = '?id=' . $roomId . '&filter=' . $filter . ($search ? '&search=' . urlencode($search) : '');
+    ?>
+    <div style="display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;align-items:center;">
+        <span style="font-size:12px;color:var(--text-muted);margin-right:4px;">Sắp xếp:</span>
+        <a href="<?= $sortBase ?>&sort=due_asc" class="btn <?= $sort === 'due_asc' ? 'btn-primary' : 'btn-secondary' ?> btn-sm" style="font-size:12px;">
+            ⏰ Gần hết hạn
+        </a>
+        <a href="<?= $sortBase ?>&sort=due_desc" class="btn <?= $sort === 'due_desc' ? 'btn-primary' : 'btn-secondary' ?> btn-sm" style="font-size:12px;">
+            📅 Còn nhiều hạn
+        </a>
+        <a href="<?= $sortBase ?>&sort=name_asc" class="btn <?= $sort === 'name_asc' ? 'btn-primary' : 'btn-secondary' ?> btn-sm" style="font-size:12px;">
+            🔤 Tên A→Z
+        </a>
+        <a href="<?= $sortBase ?>&sort=new_first" class="btn <?= $sort === 'new_first' ? 'btn-primary' : 'btn-secondary' ?> btn-sm" style="font-size:12px;">
+            🆕 Mới chuyển đến
         </a>
     </div>
 
