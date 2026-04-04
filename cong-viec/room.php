@@ -170,10 +170,10 @@ include 'layout_top.php';
     <div style="display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;align-items:center;">
         <span style="font-size:12px;color:var(--text-muted);margin-right:4px;">Sắp xếp:</span>
         <a href="<?= $sortBase ?>&sort=due_asc" class="btn <?= $sort === 'due_asc' ? 'btn-primary' : 'btn-secondary' ?> btn-sm" style="font-size:12px;">
-            ⏰ Gần hết hạn
+            ⏰ Ngày hết hạn tăng dần
         </a>
         <a href="<?= $sortBase ?>&sort=due_desc" class="btn <?= $sort === 'due_desc' ? 'btn-primary' : 'btn-secondary' ?> btn-sm" style="font-size:12px;">
-            📅 Còn nhiều hạn
+            📅 Ngày hết hạn giảm dần
         </a>
     </div>
 
