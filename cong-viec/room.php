@@ -67,10 +67,10 @@ $params = [$roomId];
 if ($filter === 'overdue') {
     $sql .= " AND l.cv_status = 'active' AND l.cv_due_date < CURDATE()";
 } elseif ($filter === 'warning') {
-    $warnDays = max(1, intval($slaDays / 3));
+    $warnDays = max(2, intval(ceil($slaDays / 3)));
     $sql .= " AND l.cv_status = 'active' AND l.cv_due_date >= CURDATE() AND l.cv_due_date < DATE_ADD(CURDATE(), INTERVAL $warnDays DAY)";
 } elseif ($filter === 'safe') {
-    $warnDays = max(1, intval($slaDays / 3));
+    $warnDays = max(2, intval(ceil($slaDays / 3)));
     $sql .= " AND l.cv_status = 'active' AND (l.cv_due_date >= DATE_ADD(CURDATE(), INTERVAL $warnDays DAY) OR l.cv_due_date IS NULL)";
 } elseif ($filter === 'active') {
     $sql .= " AND l.cv_status = 'active'";
@@ -93,7 +93,7 @@ $customers = $stmt->fetchAll();
 $employees = $pdo->query("SELECT id, fullname, role FROM users WHERE cv_role IS NOT NULL ORDER BY fullname")->fetchAll();
 
 // Thống kê
-$warnDays = max(1, intval($slaDays / 3));
+$warnDays = max(2, intval(ceil($slaDays / 3)));
 $stats = $pdo->prepare("SELECT 
     COUNT(*) as total,
     SUM(CASE WHEN cv_due_date < CURDATE() THEN 1 ELSE 0 END) as overdue,
