@@ -27,7 +27,7 @@ $stmt = $pdo->prepare("SELECT l.id, c.name, c.phone, c.identity_card as cccd, c.
 $stmt->execute([$customerId]);
 $customer = $stmt->fetch();
 if (!$customer)
-    redirect('index.php');
+    redirect('/cong-viec/tong-quan');
 
 $pageTitle = $customer['name'];
 $activePage = 'room-' . $customer['room_id'];
@@ -185,7 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                     $pdo->commit();
                     $_SESSION['flash_message'] = 'Đã chuyển khách sang phòng mới';
-                    redirect('room.php?id=' . $fromRoomId);
+                    redirect('/cong-viec/phong/' . $fromRoomId);
                 } catch (Exception $e) {
                     $pdo->rollBack();
                     $_SESSION['flash_message'] = 'Lỗi khi chuyển phòng: ' . $e->getMessage();
@@ -281,7 +281,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $stmt->execute([$customerId]);
                 }
                 $_SESSION['flash_message'] = 'Đã đánh dấu hoàn thành';
-                redirect('room.php?id=' . $oldRoomId);
+                redirect('/cong-viec/phong/' . $oldRoomId);
             }
             break;
 

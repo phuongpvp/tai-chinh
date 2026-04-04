@@ -40,11 +40,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $stmt->execute([$customerId, $user['id'], $roomId, $workDone, $logDate, $actionType, $resultType, $promiseDate, $amountVal]);
 
         $_SESSION['flash_message'] = '✅ Đã lưu nhật ký!';
-        redirect('worklog_add.php');
+        redirect('/cong-viec/nhat-ky');
     } else {
         $_SESSION['flash_message'] = 'Vui lòng điền đầy đủ thông tin!';
         $_SESSION['flash_type'] = 'error';
-        redirect('worklog_add.php');
+        redirect('/cong-viec/nhat-ky');
     }
 }
 

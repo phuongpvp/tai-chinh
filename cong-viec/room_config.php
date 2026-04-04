@@ -8,12 +8,12 @@ $activePage = 'rooms_manage';
 $user = cvGetUser();
 
 $roomId = intval($_GET['id'] ?? 0);
-if (!$roomId) { redirect('rooms_manage.php'); }
+if (!$roomId) { redirect('/cong-viec/quan-ly-phong'); }
 
 $room = $pdo->prepare("SELECT * FROM cv_rooms WHERE id = ?");
 $room->execute([$roomId]);
 $room = $room->fetch();
-if (!$room) { redirect('rooms_manage.php'); }
+if (!$room) { redirect('/cong-viec/quan-ly-phong'); }
 
 // Xử lý save
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_config') {
@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $stmt->execute([json_encode($config, JSON_UNESCAPED_UNICODE), $roomId]);
         $_SESSION['flash_message'] = '✅ Đã lưu cấu hình nhật ký cho phòng ' . $room['name'];
     }
-    redirect('room_config.php?id=' . $roomId);
+    redirect('/cong-viec/cau-hinh-phong/' . $roomId);
 }
 
 // Load existing config

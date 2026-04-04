@@ -3,13 +3,13 @@ require_once 'config.php';
 requireLogin();
 
 $roomId = intval($_GET['id'] ?? 0);
-if (!$roomId) redirect('index.php');
+if (!$roomId) redirect('/cong-viec/tong-quan');
 
 // Lấy thông tin phòng (bao gồm SLA)
 $room = $pdo->prepare("SELECT * FROM cv_rooms WHERE id = ?");
 $room->execute([$roomId]);
 $room = $room->fetch();
-if (!$room) redirect('index.php');
+if (!$room) redirect('/cong-viec/tong-quan');
 $slaDays = intval($room['sla_days'] ?? 0);
 
 $user = cvGetUser();
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt2 = $pdo->prepare("INSERT INTO loans (customer_id, loan_code, amount, status, cv_room_id, cv_assigned_to, cv_due_date, cv_notes, cv_status, cv_transfer_date) VALUES (?, ?, 0, 'active', ?, ?, ?, ?, 'active', ?)");
             $stmt2->execute([$newCustId, $loanCode, $roomId, $assignedTo, $dueDate ?: null, $notes, $now]);
             $_SESSION['flash_message'] = 'Đã thêm khách hàng: ' . $name;
-            redirect('room.php?id=' . $roomId);
+            redirect('/cong-viec/phong/' . $roomId);
         }
     }
 }

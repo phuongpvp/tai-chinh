@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt = $pdo->prepare("INSERT INTO cv_rooms (name, icon, color, sort_order, sla_days, is_archive, action_options, result_options) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute([$name, $icon, $color, $sortOrder, $slaDays, $isArchive, json_encode($actionOpts, JSON_UNESCAPED_UNICODE), json_encode($resultOpts, JSON_UNESCAPED_UNICODE)]);
                 $_SESSION['flash_message'] = 'Đã thêm phòng: ' . $name;
-                redirect('rooms_manage.php');
+                redirect('/cong-viec/quan-ly-phong');
             }
             break;
 
@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt = $pdo->prepare("UPDATE cv_rooms SET name=?, icon=?, color=?, sort_order=?, sla_days=?, is_archive=?, action_options=?, result_options=? WHERE id=?");
                 $stmt->execute([$name, $icon, $color, $sortOrder, $slaDays, $isArchive, json_encode($actionOpts, JSON_UNESCAPED_UNICODE), json_encode($resultOpts, JSON_UNESCAPED_UNICODE), $rid]);
                 $_SESSION['flash_message'] = 'Đã cập nhật phòng';
-                redirect('rooms_manage.php');
+                redirect('/cong-viec/quan-ly-phong');
             }
             break;
 
@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $stmt->execute([$rid]);
                     $_SESSION['flash_message'] = 'Đã xóa phòng';
                 }
-                redirect('rooms_manage.php');
+                redirect('/cong-viec/quan-ly-phong');
             }
             break;
     }
