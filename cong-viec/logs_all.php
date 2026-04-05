@@ -207,6 +207,9 @@ include 'layout_top.php';
                                 <span style="color:<?= $resultColors[$rt] ?? '#6b7280' ?>;font-weight:600;font-size:12px;">
                                     <?= $resultLabels[$rt] ?? $rt ?>
                                 </span>
+                                <?php if (!empty($wl['promise_date'])): ?>
+                                    <br><span style="font-size:11px;color:#f59e0b;">📅 <?= date('d/m/Y', strtotime($wl['promise_date'])) ?></span>
+                                <?php endif; ?>
                                 <?php if (!empty($wl['amount'])): ?>
                                     <br><span style="font-size:11px;color:var(--text-muted);"><?= number_format($wl['amount'], 0, ',', '.') ?>đ</span>
                                 <?php endif; ?>

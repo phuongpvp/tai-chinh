@@ -1080,6 +1080,9 @@ include 'layout_top.php';
                                         <span class="tag" style="--tag-bg:<?= $rtBg ?>;--tag-color:<?= $rtFg ?>;">
                                             <?= sanitize($wl['result_type']) ?>
                                         </span>
+                                        <?php if (!empty($wl['promise_date'])): ?>
+                                            <br><span style="font-size:11px;color:#eab308;">📅 <?= date('d/m/Y', strtotime($wl['promise_date'])) ?></span>
+                                        <?php endif; ?>
                                     <?php else: ?>
                                         <span style="color:var(--text-muted)">—</span>
                                     <?php endif; ?>

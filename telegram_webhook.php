@@ -8,7 +8,7 @@ $content = file_get_contents("php://input");
 $update = json_decode($content, true);
 
 // Log for debugging (optional - remove in production)
-// file_put_contents('telegram_log.txt', date('Y-m-d H:i:s') . " - " . $content . "\n", FILE_APPEND);
+// file_put_contents(__DIR__.'/telegram_log.txt', date('Y-m-d H:i:s') . " - " . $content . "\n", FILE_APPEND);
 
 try {
     if (isset($update['message'])) {
