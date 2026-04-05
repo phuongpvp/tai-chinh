@@ -90,7 +90,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'xlsx') {
     }
     
     if ($exportType === 'transfer') {
-        $rows = [['Thời gian', 'Họ tên khách', 'Từ phòng', 'Đến phòng', 'Người chuyển', 'Ghi chú']];
+        $rows = [['Thời gian', 'Họ tên khách', 'Từ phòng', 'Đến phòng', 'Người chuyển', 'Ghi chú', 'Deadline']];
         foreach ($transferLogs as $tl) {
             $rows[] = [
                 date('d/m/Y H:i', strtotime($tl['transferred_at'])),
@@ -98,7 +98,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'xlsx') {
                 $tl['from_room_name'] ?? '',
                 $tl['to_room_name'] ?? '',
                 $tl['transferred_by_name'] ?? '',
-                $tl['note'] ?? ''
+                $tl['note'] ?? '',
+                isset($tl['deadline_status']) ? ($tl['deadline_status'] > 0 ? '+' . $tl['deadline_status'] : $tl['deadline_status']) : ''
             ];
         }
         SimpleXLSXGen::fromArray($rows)->downloadAs('chuyenphong_tong_' . $dateSuffix . '.xlsx');
@@ -243,6 +244,7 @@ include 'layout_top.php';
                             <th style="padding:10px 12px;text-align:left;color:var(--text-secondary);font-weight:600;">Đến phòng</th>
                             <th style="padding:10px 12px;text-align:left;color:var(--text-secondary);font-weight:600;">Người chuyển</th>
                             <th style="padding:10px 12px;text-align:left;color:var(--text-secondary);font-weight:600;">Ghi chú</th>
+                            <th style="padding:10px 12px;text-align:center;color:var(--text-secondary);font-weight:600;">Deadline</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -258,6 +260,15 @@ include 'layout_top.php';
                             <td style="padding:10px 12px;"><?= $tl['to_room_icon'] ?? '' ?> <?= sanitize($tl['to_room_name'] ?? '—') ?></td>
                             <td style="padding:10px 12px;"><?= sanitize($tl['transferred_by_name'] ?? '') ?></td>
                             <td style="padding:10px 12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;"><?= sanitize($tl['note'] ?? '') ?></td>
+                            <td style="padding:10px 12px;text-align:center;font-weight:bold;">
+                                <?php if (isset($tl['deadline_status'])): ?>
+                                    <?php if ($tl['deadline_status'] < 0): ?>
+                                        <span style="color:#ef4444;"><?= $tl['deadline_status'] ?></span>
+                                    <?php else: ?>
+                                        <span style="color:#22c55e;">+<?= $tl['deadline_status'] ?></span>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                            </td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>

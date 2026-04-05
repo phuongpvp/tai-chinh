@@ -111,6 +111,7 @@
 | transferred_by | INT FK → users | Người chuyển |
 | transferred_at | DATETIME | Thời điểm chuyển |
 | note | TEXT | Ghi chú |
+| deadline_status | INT | Số ngày còn/quá hạn tại thời điểm chuyển phòng. Dương = sớm hạn, Âm = trễ hạn, NULL = không có hạn |
 
 ### Bảng `comments`
 | Cột | Kiểu | Mô tả |
@@ -1182,3 +1183,44 @@ Thêm trang **Thông tin cá nhân** cho module Công Việc, cho phép user xem
 - `cong-viec/profile.php` — Trang hồ sơ (đã có sẵn, sửa redirect sang clean URL)
 - `cong-viec/layout_top.php` — Thêm link "Thông tin cá nhân" vào dropdown menu user
 - `.htaccess` (root) — Thêm RewriteRule `^cong-viec/ho-so$` → `profile.php`
+
+---
+
+### ⏰ Cột Deadline Chốt SLA Khi Chuyển Phòng (04/04/2026)
+
+Thêm tính năng **tự động ghi nhận mức độ hoàn thành SLA** tại thời điểm chuyển phòng hoặc đánh dấu hoàn thành. Phục vụ đối soát cuối tháng, tính phạt/thưởng năng suất nhân viên.
+
+#### Cách tính
+
+```
+Deadline = Ngày hết hạn (due_date) - Ngày chuyển phòng (hôm nay)
+```
+
+| Giá trị | Ý nghĩa | Màu hiển thị |
+|---------|---------|-------------|
+| `+4` | Làm xong sớm 4 ngày | 🟢 Xanh |
+| `0` | Đúng hạn | 🟡 Vàng |
+| `-4` | Trễ hạn 4 ngày | 🔴 Đỏ |
+| *(trống)* | Khách không có deadline | — |
+
+#### Database
+
+- Cột mới: `deadline_status INT DEFAULT NULL` trong bảng `cv_transfer_logs`
+- Auto-migrate: Thêm lệnh ALTER TABLE trong `config.php`
+
+#### Files đã sửa
+
+- `cong-viec/config.php` — Thêm ALTER TABLE tạo cột `deadline_status`
+- `cong-viec/customer.php`:
+  - **Backend**: Case `change_room` và `mark_completed` — gọi `getDaysRemaining()` trước khi INSERT log, lưu kết quả vào `deadline_status`
+  - **UI**: Tab "Chuyển phòng" — thêm cột `⏰ Deadline` vào bảng HTML
+  - **Timeline**: Thêm dòng `Deadline: +X / -X` vào summary tổng hợp
+  - **Excel**: Export tab transfers thêm cột Deadline
+- `cong-viec/logs_all.php`:
+  - **UI**: Bảng "Chuyển phòng" tổng — thêm cột `Deadline`
+  - **Excel**: Export chuyển phòng tổng thêm cột Deadline
+
+#### Lưu ý
+
+> ⚠️ Dữ liệu chuyển phòng **trước ngày 04/04/2026** sẽ không có giá trị Deadline (cột trống) vì tính năng chưa tồn tại. Chỉ các lần chuyển phòng mới từ thời điểm này trở đi mới được ghi nhận.
+

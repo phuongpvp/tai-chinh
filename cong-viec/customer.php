@@ -157,8 +157,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $now = date('Y-m-d H:i:s');
 
                     // 1) Tạo TransferLog
-                    $stmt = $pdo->prepare("INSERT INTO cv_transfer_logs (loan_id, from_room_id, to_room_id, transferred_by, transferred_at, note) VALUES (?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$customerId, $fromRoomId, $newRoomId, $user['id'], $now, $transferNote ?: null]);
+                    $deadlineStatus = $customer['due_date'] ? getDaysRemaining($customer['due_date']) : null;
+                    $stmt = $pdo->prepare("INSERT INTO cv_transfer_logs (loan_id, from_room_id, to_room_id, transferred_by, transferred_at, note, deadline_status) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$customerId, $fromRoomId, $newRoomId, $user['id'], $now, $transferNote ?: null, $deadlineStatus]);
 
                     // 2) Lấy SLA phòng mới
                     $newRoom = $pdo->prepare("SELECT sla_days FROM cv_rooms WHERE id = ?");
@@ -185,7 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                     $pdo->commit();
                     $_SESSION['flash_message'] = 'Đã chuyển khách sang phòng mới';
-                    redirect('/cong-viec/phong/' . $fromRoomId);
+                    redirect($fromRoomId ? '/cong-viec/phong/' . $fromRoomId : '/cong-viec/khach-hang/' . $customerId);
                 } catch (Exception $e) {
                     $pdo->rollBack();
                     $_SESSION['flash_message'] = 'Lỗi khi chuyển phòng: ' . $e->getMessage();
@@ -274,14 +275,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $stmt->execute([$htRoomId, date('Y-m-d'), $customerId]);
                     // Log chuyển phòng
                     if ($oldRoomId && intval($oldRoomId) !== $htRoomId) {
-                        $pdo->prepare("INSERT INTO cv_transfer_logs (loan_id, from_room_id, to_room_id, transferred_by, note) VALUES (?, ?, ?, ?, ?)")
-                            ->execute([$customerId, $oldRoomId, $htRoomId, $user['id'], 'Thủ công: Đánh dấu hoàn thành']);
+                        $deadlineStatus = $customer['due_date'] ? getDaysRemaining($customer['due_date']) : null;
+                        $pdo->prepare("INSERT INTO cv_transfer_logs (loan_id, from_room_id, to_room_id, transferred_by, note, deadline_status) VALUES (?, ?, ?, ?, ?, ?)")
+                            ->execute([$customerId, $oldRoomId, $htRoomId, $user['id'], 'Thủ công: Đánh dấu hoàn thành', $deadlineStatus]);
                     }
                 } else {
                     $stmt->execute([$customerId]);
                 }
                 $_SESSION['flash_message'] = 'Đã đánh dấu hoàn thành';
-                redirect('/cong-viec/phong/' . $oldRoomId);
+                redirect($oldRoomId ? '/cong-viec/phong/' . $oldRoomId : '/cong-viec/khach-hang/' . $customerId);
             }
             break;
 
@@ -490,6 +492,8 @@ foreach ($transferLogs as $tl) {
     $parts[] = 'Người chuyển: ' . ($tl['transferred_by_name'] ?? '?');
     if ($tl['note'])
         $parts[] = 'Ghi chú: ' . $tl['note'];
+    if (isset($tl['deadline_status']))
+        $parts[] = 'Deadline: ' . ($tl['deadline_status'] > 0 ? '+' . $tl['deadline_status'] : $tl['deadline_status']);
     $timeline[] = [
         'date' => $tl['transferred_at'],
         'sort_time' => strtotime($tl['transferred_at']),
@@ -563,7 +567,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'xlsx') {
     }
 
     if ($exportTab === 'transfers') {
-        $rows = [['Thời gian', 'Họ tên khách', 'Từ phòng', 'Đến phòng', 'Người chuyển', 'Ghi chú']];
+        $rows = [['Thời gian', 'Họ tên khách', 'Từ phòng', 'Đến phòng', 'Người chuyển', 'Ghi chú', 'Deadline']];
         foreach ($transferLogs as $tl) {
             $rows[] = [
                 date('d/m/Y H:i', strtotime($tl['transferred_at'])),
@@ -571,7 +575,8 @@ if (isset($_GET['export']) && $_GET['export'] === 'xlsx') {
                 $tl['from_room_name'] ?? '',
                 $tl['to_room_name'] ?? '',
                 $tl['transferred_by_name'] ?? '',
-                $tl['note'] ?? ''
+                $tl['note'] ?? '',
+                isset($tl['deadline_status']) ? ($tl['deadline_status'] > 0 ? '+' . $tl['deadline_status'] : $tl['deadline_status']) : ''
             ];
         }
         SimpleXLSXGen::fromArray($rows)->downloadAs('chuyenphong_' . $safeCustomerName . '_' . date('Ymd') . '.xlsx');
@@ -1126,6 +1131,7 @@ include 'layout_top.php';
                             <th>Đến phòng</th>
                             <th>👤 Người chuyển</th>
                             <th>📝 Ghi chú</th>
+                            <th style="text-align:center">⏰ Deadline</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1147,6 +1153,17 @@ include 'layout_top.php';
                                 <td><?= sanitize($tl['transferred_by_name'] ?? '') ?></td>
                                 <td style="max-width:200px;font-size:13px;color:var(--text-secondary);">
                                     <?= sanitize($tl['note'] ?? '') ?>
+                                </td>
+                                <td style="text-align:center;font-weight:bold;">
+                                    <?php if (isset($tl['deadline_status'])): ?>
+                                        <?php if ($tl['deadline_status'] < 0): ?>
+                                            <span style="color:#ef4444;"><?= $tl['deadline_status'] ?></span>
+                                        <?php elseif ($tl['deadline_status'] == 0): ?>
+                                            <span style="color:#f59e0b;">0</span>
+                                        <?php else: ?>
+                                            <span style="color:#22c55e;">+<?= $tl['deadline_status'] ?></span>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
