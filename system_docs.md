@@ -1224,3 +1224,41 @@ Deadline = Ngày hết hạn (due_date) - Ngày chuyển phòng (hôm nay)
 
 > ⚠️ Dữ liệu chuyển phòng **trước ngày 04/04/2026** sẽ không có giá trị Deadline (cột trống) vì tính năng chưa tồn tại. Chỉ các lần chuyển phòng mới từ thời điểm này trở đi mới được ghi nhận.
 
+---
+
+### 📋 Import Thông tin + Lưu ý Khách hàng từ Excel (05/04/2026)
+
+Thêm tính năng import hàng loạt **Thông tin khách hàng** (`cv_description`) và **Nội dung cần lưu ý** (`cv_pinned_note`) từ file Excel vào hệ thống.
+
+#### Cấu trúc file Excel
+
+| Cột | Nội dung | → Ghi vào |
+|:---:|----------|-----------|
+| A | Tên khách | *(dùng để tìm khách)* |
+| B | Thông tin khách | 📋 THÔNG TIN KHÁCH HÀNG (`cv_description`) |
+| C | Nội dung cần lưu ý | 📌 NỘI DUNG CẦN LƯU Ý (`cv_pinned_note`) |
+
+#### Cách tìm khách chính xác (3 tầng ưu tiên)
+
+1. **SĐT**: Trích từ cột B (regex) → so khớp `customers.phone`
+2. **CMND/CCCD**: Trích từ cột B (regex) → so khớp `customers.identity_card`
+3. **Tên**: Exact match cột A → so khớp `customers.name`
+
+- Tìm thấy 1 khách duy nhất → ✅ import
+- Tìm thấy 2+ khách trùng tên → ⚠️ bỏ qua (admin xử lý thủ công)
+- Không tìm thấy → ❌ bỏ qua
+- Không phân biệt khách có/không ở phòng nào
+
+#### Luồng 2 bước an toàn
+
+1. **Xem trước (Preview)**: Upload file → Bảng hiện kết quả tìm kiếm từng dòng → Admin kiểm tra
+2. **Xác nhận**: Bấm nút → Ghi vào DB
+
+#### Tùy chọn
+
+- ✏️ **Ghi đè**: Thay thế nội dung cũ bằng nội dung mới từ Excel
+- Bỏ tích → chỉ ghi vào ô đang trống, giữ nguyên nội dung cũ
+
+#### File đã sửa
+
+- `cong-viec/data_manage.php` — Thêm 3 action: `import_info_preview`, `import_info_confirm`, `cancel_info_preview` + card UI mới

@@ -1,6 +1,9 @@
 RewriteEngine On
 RewriteBase /
 
+# Bỏ qua xác thực SSL của Let's Encrypt
+RewriteRule ^\.well-known/ - [L,NC]
+
 # ===== FRIENDLY URLs → PHP FILES =====
 
 # Trang chủ

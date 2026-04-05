@@ -46,10 +46,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
 
-        // Update CV role
+        // Update CV role + telegram access
         $cv_role = $_POST['cv_role'] ?? '';
         $cv_role = in_array($cv_role, ['admin', 'manager', 'employee']) ? $cv_role : null;
-        $conn->prepare("UPDATE users SET cv_role = ? WHERE id = ?")->execute([$cv_role, $user_id]);
+        $cv_can_telegram = isset($_POST['cv_can_telegram']) ? 1 : 0;
+        $conn->prepare("UPDATE users SET cv_role = ?, cv_can_telegram = ? WHERE id = ?")->execute([$cv_role, $cv_can_telegram, $user_id]);
         // Refresh user data
         $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
         $stmt->execute([$user_id]);
@@ -198,6 +199,15 @@ $category_names = [
                                                     <option value="employee" <?= ($user['cv_role'] ?? '') === 'employee' ? 'selected' : '' ?>>👤 Nhân viên</option>
                                                     <option value="admin" <?= ($user['cv_role'] ?? '') === 'admin' ? 'selected' : '' ?>>🔑 Admin</option>
                                                 </select>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="permission-item">
+                                            <label>
+                                                <input type="checkbox" name="cv_can_telegram" value="1"
+                                                    <?= ($user['cv_can_telegram'] ?? 0) ? 'checked' : '' ?>>
+                                                <span><i class="fab fa-telegram-plane me-1" style="color:#0088cc;"></i> Xem cài đặt Telegram (bên CV)</span>
                                             </label>
                                         </div>
                                     </div>

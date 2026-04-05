@@ -497,6 +497,275 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
+    // ─────────────── IMPORT THÔNG TIN + LƯU Ý (PREVIEW) ───────────────
+    if ($action === 'import_info_preview') {
+        $hasFile = isset($_FILES['info_file']) && $_FILES['info_file']['error'] === UPLOAD_ERR_OK && $_FILES['info_file']['size'] > 0;
+        if (!$hasFile) {
+            $message = "❌ Vui lòng chọn file Excel (.xlsx) để import.";
+            $messageType = 'error';
+        } else {
+            $data = readXlsxFile($_FILES['info_file']['tmp_name']);
+            if ($data === false) {
+                $message = "❌ Không đọc được file Excel. Đảm bảo file đúng định dạng .xlsx";
+                $messageType = 'error';
+            } else {
+                // Build maps: phone → loan_id, cccd → loan_id, name → loan_ids
+                $phoneMap = [];  // phone => {loan_id, name}
+                $cccdMap = [];   // cccd => {loan_id, name}
+                $nameMap = [];   // lowercase_name => [{loan_id, name, customer_id}]
+                
+                $allLoans = $pdo->query("
+                    SELECT l.id as loan_id, l.customer_id, c.name, c.phone, c.identity_card as cccd,
+                           r.name as room_name, r.icon as room_icon
+                    FROM loans l 
+                    JOIN customers c ON l.customer_id = c.id 
+                    LEFT JOIN cv_rooms r ON l.cv_room_id = r.id
+                    WHERE l.status != 'deleted'
+                    ORDER BY l.id DESC
+                ")->fetchAll(PDO::FETCH_ASSOC);
+                
+                foreach ($allLoans as $loan) {
+                    $phone = trim($loan['phone'] ?? '');
+                    $cccd = trim($loan['cccd'] ?? '');
+                    $name = trim($loan['name'] ?? '');
+                    $lowerName = mb_strtolower($name);
+                    
+                    if (!empty($phone) && !isset($phoneMap[$phone])) {
+                        $phoneMap[$phone] = ['loan_id' => $loan['loan_id'], 'name' => $name];
+                    }
+                    if (!empty($cccd) && !isset($cccdMap[$cccd])) {
+                        $cccdMap[$cccd] = ['loan_id' => $loan['loan_id'], 'name' => $name];
+                    }
+                    if (!empty($name)) {
+                        // Chỉ thêm nếu customer_id chưa có trong danh sách tên này
+                        $alreadyHasCust = false;
+                        if (isset($nameMap[$lowerName])) {
+                            foreach ($nameMap[$lowerName] as $existing) {
+                                if ($existing['customer_id'] == $loan['customer_id']) {
+                                    $alreadyHasCust = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!$alreadyHasCust) {
+                            $nameMap[$lowerName][] = [
+                                'loan_id' => $loan['loan_id'], 
+                                'name' => $name, 
+                                'customer_id' => $loan['customer_id'],
+                                'phone' => $phone,
+                                'room_name' => $loan['room_name'] ?? '',
+                                'room_icon' => $loan['room_icon'] ?? '',
+                            ];
+                        }
+                    }
+                }
+                
+                $preview = [];
+                $overwrite = isset($_POST['overwrite_existing']);
+                
+                for ($i = 1; $i < count($data); $i++) {
+                    $row = $data[$i];
+                    $excelName = trim($row[0] ?? '');
+                    $excelInfo = trim($row[1] ?? '');
+                    $excelNote = trim($row[2] ?? '');
+                    
+                    if (empty($excelName)) continue;
+                    
+                    $matched = null;
+                    $matchMethod = '';
+                    $matchStatus = '';
+                    
+                    // Tầng 1: Tìm SĐT trong cột B
+                    $phones = [];
+                    if (preg_match_all('/(?:SĐT|SDT|Sđt|sdt|S[Đđ][Tt])\s*:?\s*([0-9][0-9\s,\.]+)/u', $excelInfo, $pm)) {
+                        foreach ($pm[1] as $rawPhone) {
+                            $nums = preg_split('/[,;\s]+/', $rawPhone);
+                            foreach ($nums as $n) {
+                                $clean = preg_replace('/[^0-9]/', '', $n);
+                                if (strlen($clean) >= 9 && strlen($clean) <= 11) {
+                                    if (substr($clean, 0, 1) !== '0') $clean = '0' . $clean;
+                                    $phones[] = $clean;
+                                }
+                            }
+                        }
+                    }
+                    
+                    foreach ($phones as $ph) {
+                        if (isset($phoneMap[$ph])) {
+                            $matched = $phoneMap[$ph];
+                            $matchMethod = "SĐT: $ph";
+                            break;
+                        }
+                    }
+                    
+                    // Tầng 2: Tìm CMND/CCCD trong cột B
+                    if (!$matched) {
+                        $cccdNums = [];
+                        if (preg_match_all('/(?:CMND|CCCD|cmnd|cccd)[^0-9]*([0-9]{9,12})/u', $excelInfo, $cm)) {
+                            $cccdNums = $cm[1];
+                        }
+                        foreach ($cccdNums as $cc) {
+                            $cc = str_pad($cc, 12, '0', STR_PAD_LEFT);
+                            if (isset($cccdMap[$cc])) {
+                                $matched = $cccdMap[$cc];
+                                $matchMethod = "CCCD: $cc";
+                                break;
+                            }
+                            // Thử 9 số
+                            $cc9 = ltrim($cc, '0');
+                            $cc9 = str_pad($cc9, 9, '0', STR_PAD_LEFT);
+                            if (isset($cccdMap[$cc9])) {
+                                $matched = $cccdMap[$cc9];
+                                $matchMethod = "CMND: $cc9";
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Tầng 3: Tìm theo tên
+                    if (!$matched) {
+                        $lowerName = mb_strtolower($excelName);
+                        if (isset($nameMap[$lowerName])) {
+                            $candidates = $nameMap[$lowerName];
+                            if (count($candidates) === 1) {
+                                $matched = $candidates[0];
+                                $matchMethod = 'Tên khớp';
+                            } else {
+                                // Trùng tên → cho admin chọn
+                                $preview[] = [
+                                    'excel_name' => $excelName,
+                                    'excel_info' => mb_substr($excelInfo, 0, 80) . (mb_strlen($excelInfo) > 80 ? '...' : ''),
+                                    'excel_note' => mb_substr($excelNote, 0, 80) . (mb_strlen($excelNote) > 80 ? '...' : ''),
+                                    'loan_id' => null,
+                                    'db_name' => count($candidates) . ' khách trùng tên',
+                                    'match_method' => '',
+                                    'status' => 'duplicate',
+                                    'full_info' => $excelInfo,
+                                    'full_note' => $excelNote,
+                                    'candidates' => $candidates,
+                                ];
+                                continue;
+                            }
+                        }
+                    }
+                    
+                    if ($matched) {
+                        $preview[] = [
+                            'excel_name' => $excelName,
+                            'excel_info' => mb_substr($excelInfo, 0, 80) . (mb_strlen($excelInfo) > 80 ? '...' : ''),
+                            'excel_note' => mb_substr($excelNote, 0, 80) . (mb_strlen($excelNote) > 80 ? '...' : ''),
+                            'loan_id' => $matched['loan_id'],
+                            'db_name' => $matched['name'],
+                            'match_method' => $matchMethod,
+                            'status' => 'ready',
+                            'full_info' => $excelInfo,
+                            'full_note' => $excelNote,
+                        ];
+                    } else {
+                        $preview[] = [
+                            'excel_name' => $excelName,
+                            'excel_info' => mb_substr($excelInfo, 0, 80) . (mb_strlen($excelInfo) > 80 ? '...' : ''),
+                            'excel_note' => mb_substr($excelNote, 0, 80) . (mb_strlen($excelNote) > 80 ? '...' : ''),
+                            'loan_id' => null,
+                            'db_name' => '—',
+                            'match_method' => '',
+                            'status' => 'not_found',
+                            'full_info' => $excelInfo,
+                            'full_note' => $excelNote,
+                        ];
+                    }
+                }
+                
+                $_SESSION['import_info_preview'] = $preview;
+                $_SESSION['import_info_overwrite'] = $overwrite;
+            }
+        }
+    }
+    
+    // ─────────────── IMPORT THÔNG TIN + LƯU Ý (XÁC NHẬN) ───────────────
+    if ($action === 'import_info_confirm') {
+        $preview = $_SESSION['import_info_preview'] ?? [];
+        $overwrite = $_SESSION['import_info_overwrite'] ?? true;
+        
+        if (empty($preview)) {
+            $message = "❌ Không có dữ liệu preview. Vui lòng upload lại file.";
+            $messageType = 'error';
+        } else {
+            $updated = 0;
+            $skipped = 0;
+            
+            $stmtGetCustId = $pdo->prepare("SELECT customer_id FROM loans WHERE id = ? LIMIT 1");
+            $stmtUpdate = $pdo->prepare("UPDATE loans SET cv_description = ?, cv_pinned_note = ? WHERE customer_id = ?");
+            $stmtUpdateDesc = $pdo->prepare("UPDATE loans SET cv_description = ? WHERE customer_id = ?");
+            $stmtUpdateNote = $pdo->prepare("UPDATE loans SET cv_pinned_note = ? WHERE customer_id = ?");
+            $stmtCheck = $pdo->prepare("SELECT cv_description, cv_pinned_note FROM loans WHERE id = ?");
+            
+            foreach ($preview as $idx => $item) {
+                if ($item['status'] === 'not_found') {
+                    $skipped++;
+                    continue;
+                }
+                
+                $loanId = $item['loan_id'];
+                
+                // Xử lý duplicate: lấy lựa chọn từ form
+                if ($item['status'] === 'duplicate') {
+                    $selectedLoanId = $_POST['dupe_' . $idx] ?? '';
+                    if (empty($selectedLoanId)) {
+                        $skipped++;
+                        continue;
+                    }
+                    $loanId = intval($selectedLoanId);
+                }
+                
+                if (!$loanId) {
+                    $skipped++;
+                    continue;
+                }
+                
+                // Tìm customer_id từ loan_id
+                $stmtGetCustId->execute([$loanId]);
+                $custId = $stmtGetCustId->fetchColumn();
+                if (!$custId) {
+                    $skipped++;
+                    continue;
+                }
+                
+                $newInfo = $item['full_info'];
+                $newNote = $item['full_note'];
+                
+                if ($overwrite) {
+                    // Ghi đè cả 2 cột — cho TẤT CẢ loans cùng customer
+                    $stmtUpdate->execute([$newInfo ?: null, $newNote ?: null, $custId]);
+                    $updated++;
+                } else {
+                    // Chỉ ghi vào ô trống (check trên loan gốc)
+                    $stmtCheck->execute([$loanId]);
+                    $current = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+                    $didUpdate = false;
+                    
+                    if (empty($current['cv_description']) && !empty($newInfo)) {
+                        $stmtUpdateDesc->execute([$newInfo, $custId]);
+                        $didUpdate = true;
+                    }
+                    if (empty($current['cv_pinned_note']) && !empty($newNote)) {
+                        $stmtUpdateNote->execute([$newNote, $custId]);
+                        $didUpdate = true;
+                    }
+                    
+                    if ($didUpdate) $updated++;
+                    else $skipped++;
+                }
+            }
+            
+            unset($_SESSION['import_info_preview'], $_SESSION['import_info_overwrite']);
+            
+            $message = "✅ Đã cập nhật $updated khách hàng" . ($skipped > 0 ? " ($skipped bỏ qua)" : "") . ".";
+            $messageType = 'success';
+        }
+    }
+    
+    
     // ─────────────── EXPORT ───────────────
     if ($action === 'export') {
         require_once __DIR__ . '/../SimpleXLSXGen.php';
@@ -526,6 +795,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ];
         }
         SimpleXLSXGen::fromArray($rows)->downloadAs('khachhang_export_' . date('Y-m-d_His') . '.xlsx');
+    }
+    
+    // ─────────────── HỦY PREVIEW ───────────────
+    if ($action === 'cancel_info_preview') {
+        unset($_SESSION['import_info_preview'], $_SESSION['import_info_overwrite']);
+        redirect('data_manage.php');
     }
 }
 
@@ -572,6 +847,171 @@ include 'layout_top.php';
             <div style="font-size:32px; font-weight:800; color:var(--accent-green);"><?= $totalRooms ?></div>
             <div style="font-size:13px; color:var(--text-muted); margin-top:4px;">🏠 Phòng</div>
         </div>
+    </div>
+
+    <?php $importPreview = $_SESSION['import_info_preview'] ?? null; ?>
+
+    <!-- IMPORT THÔNG TIN + LƯU Ý -->
+    <div style="background:var(--bg-card); border:1px solid rgba(168,85,247,0.3); border-radius:var(--radius-lg); padding:24px; margin-bottom:24px;">
+        <h3 style="margin:0 0 8px 0; font-size:18px; color:#a855f7;">📋 Import Thông tin + Lưu ý khách hàng</h3>
+        <p style="color:var(--text-muted); font-size:13px; margin-bottom:20px;">Upload file Excel có 3 cột: <strong>A: Tên khách</strong>, <strong>B: Thông tin khách</strong>, <strong>C: Nội dung cần lưu ý</strong>. Hệ thống sẽ tự động tìm khách trong DB và hiện bảng xem trước.</p>
+        
+        <?php if (!$importPreview): ?>
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="action" value="import_info_preview">
+            <div class="form-group" style="margin-bottom:16px;">
+                <label class="form-label">📎 Chọn file Excel (.xlsx)</label>
+                <input type="file" name="info_file" accept=".xlsx" class="form-input" required
+                       style="padding:8px; background:var(--bg-input); border:1px solid var(--border-color); border-radius:var(--radius-md); color:var(--text-primary); width:100%;">
+            </div>
+            <div style="margin-bottom:16px;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:14px; color:var(--text-secondary);">
+                    <input type="checkbox" name="overwrite_existing" value="1" checked style="width:18px; height:18px; accent-color:#a855f7;">
+                    <span>✏️ Ghi đè nếu khách đã có nội dung (bỏ tích = chỉ ghi vào ô trống)</span>
+                </label>
+            </div>
+            <button type="submit" class="btn" style="width:100%; background:#a855f7; color:#fff;">👁️ Xem trước</button>
+        </form>
+        <?php else: ?>
+        <!-- BẢNG PREVIEW -->
+        <?php
+        $readyCount = count(array_filter($importPreview, fn($p) => $p['status'] === 'ready'));
+        $notFoundCount = count(array_filter($importPreview, fn($p) => $p['status'] === 'not_found'));
+        $dupeCount = count(array_filter($importPreview, fn($p) => $p['status'] === 'duplicate'));
+        ?>
+        <div style="display:flex; gap:16px; margin-bottom:16px; flex-wrap:wrap;">
+            <div style="background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3); border-radius:var(--radius-md); padding:8px 16px; font-size:14px;">
+                ✅ Sẵn sàng: <strong style="color:#22c55e;"><?= $readyCount ?></strong>
+            </div>
+            <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:var(--radius-md); padding:8px 16px; font-size:14px;">
+                ❌ Không tìm thấy: <strong style="color:#ef4444;"><?= $notFoundCount ?></strong>
+            </div>
+            <div style="background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); border-radius:var(--radius-md); padding:8px 16px; font-size:14px;">
+                ⚠️ Trùng tên: <strong style="color:#f59e0b;"><?= $dupeCount ?></strong>
+            </div>
+        </div>
+
+        <?php if ($dupeCount > 0): ?>
+        <div style="display:flex; gap:8px; margin-bottom:16px;">
+            <button type="button" onclick="selectAllFirstDupes()" class="btn btn-secondary" style="font-size:12px; padding:6px 14px;">
+                ⚡ Chọn hết ứng viên đầu tiên (<?= $dupeCount ?> dòng)
+            </button>
+            <button type="button" onclick="clearAllDupes()" class="btn btn-secondary" style="font-size:12px; padding:6px 14px;">
+                🔄 Bỏ chọn hết
+            </button>
+        </div>
+        <script>
+        function selectAllFirstDupes() {
+            document.querySelectorAll('input[type=radio][name^=dupe_]').forEach(function(r) {
+                // Chọn radio ĐẦU TIÊN (không phải "Bỏ qua") cho mỗi nhóm
+                var name = r.name;
+                var first = document.querySelector('input[type=radio][name="'+name+'"][value]:not([value=""])');
+                if (first) first.checked = true;
+            });
+        }
+        function clearAllDupes() {
+            document.querySelectorAll('input[type=radio][name^=dupe_][value=""]').forEach(function(r) {
+                r.checked = true;
+            });
+        }
+        </script>
+        <?php endif; ?>
+
+        <div style="overflow-x:auto; margin-bottom:16px; max-height:500px; overflow-y:auto;">
+            <table class="data-table" style="font-size:12px;">
+                <thead style="position:sticky; top:0;">
+                    <tr>
+                        <th style="width:30px">#</th>
+                        <th>Tên (Excel)</th>
+                        <th>Khớp với</th>
+                        <th>Cách khớp</th>
+                        <th style="max-width:250px;">Thông tin (B)</th>
+                        <th style="max-width:250px;">Lưu ý (C)</th>
+                        <th style="text-align:center; width:50px;">TT</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($importPreview as $idx => $p): ?>
+                    <tr style="<?= $p['status'] === 'not_found' ? 'opacity:0.5;' : ($p['status'] === 'duplicate' ? 'background:rgba(245,158,11,0.05);' : '') ?>">
+                        <td style="color:var(--text-muted);"><?= $idx + 1 ?></td>
+                        <td style="font-weight:600;"><?= sanitize($p['excel_name']) ?></td>
+                        <td>
+                            <?php if ($p['status'] === 'ready'): ?>
+                                <span style="color:#22c55e;"><?= sanitize($p['db_name']) ?></span>
+                            <?php elseif ($p['status'] === 'duplicate' && !empty($p['candidates'])): ?>
+                                <div style="display:flex; flex-direction:column; gap:4px;">
+                                    <?php foreach ($p['candidates'] as $ci => $cand): ?>
+                                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; padding:3px 6px; border-radius:4px; transition:background 0.1s;"
+                                           onmouseover="this.style.background='rgba(245,158,11,0.1)'" onmouseout="this.style.background=''">
+                                        <input type="radio" name="dupe_<?= $idx ?>" value="<?= $cand['loan_id'] ?>" 
+                                               style="accent-color:#f59e0b; margin:0;">
+                                        <span style="color:#f59e0b; font-size:11px;">
+                                            <?= sanitize($cand['name']) ?>
+                                            <?php if ($cand['room_name']): ?>
+                                                <span class="tag" style="--tag-bg:rgba(76,175,80,0.15);--tag-color:#4caf50; font-size:10px; margin-left:2px;">
+                                                    <?= $cand['room_icon'] ?> <?= sanitize($cand['room_name']) ?>
+                                                </span>
+                                            <?php else: ?>
+                                                <span style="color:var(--text-muted); font-size:10px;">(chưa có phòng)</span>
+                                            <?php endif; ?>
+                                            <?php if ($cand['phone']): ?>
+                                                <span style="color:var(--text-muted); font-size:10px;">• <?= sanitize($cand['phone']) ?></span>
+                                            <?php endif; ?>
+                                        </span>
+                                    </label>
+                                    <?php endforeach; ?>
+                                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; padding:3px 6px; opacity:0.6; font-size:11px;">
+                                        <input type="radio" name="dupe_<?= $idx ?>" value="" checked style="accent-color:#666; margin:0;">
+                                        <span style="color:var(--text-muted);">Bỏ qua</span>
+                                    </label>
+                                </div>
+                            <?php else: ?>
+                                <span style="color:var(--text-muted);">—</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if ($p['match_method']): ?>
+                                <span class="tag" style="--tag-bg:rgba(59,130,246,0.15);--tag-color:#3b82f6; font-size:11px;"><?= sanitize($p['match_method']) ?></span>
+                            <?php endif; ?>
+                        </td>
+                        <td style="max-width:250px; font-size:11px; color:var(--text-secondary);"><?= sanitize($p['excel_info']) ?></td>
+                        <td style="max-width:250px; font-size:11px; color:var(--text-secondary);"><?= sanitize($p['excel_note']) ?></td>
+                        <td style="text-align:center; font-size:16px;">
+                            <?php if ($p['status'] === 'ready'): ?>✅
+                            <?php elseif ($p['status'] === 'duplicate'): ?>⚠️
+                            <?php else: ?>❌
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+
+        <div style="display:flex; gap:12px;">
+            <?php if ($readyCount > 0 || $dupeCount > 0): ?>
+            <form method="POST" style="flex:1;" onsubmit="return confirm('Xác nhận import vào DB? (<?= $_SESSION['import_info_overwrite'] ? 'Ghi đè' : 'Chỉ ô trống' ?>)')">
+                <input type="hidden" name="action" value="import_info_confirm">
+                <?php /* Truyền lại lựa chọn duplicate radio */ ?>
+                <script>
+                document.currentScript.parentElement.addEventListener('submit', function(e) {
+                    var radios = document.querySelectorAll('input[type=radio][name^=dupe_]:checked');
+                    radios.forEach(function(r) {
+                        var h = document.createElement('input');
+                        h.type = 'hidden'; h.name = r.name; h.value = r.value;
+                        e.target.appendChild(h);
+                    });
+                });
+                </script>
+                <button type="submit" class="btn" style="width:100%; background:#22c55e; color:#fff; font-weight:600;">✅ Xác nhận Import</button>
+            </form>
+            <?php endif; ?>
+            <form method="POST" style="flex:0 0 auto;">
+                <input type="hidden" name="action" value="cancel_info_preview">
+                <button type="submit" class="btn btn-secondary">🔄 Hủy / Upload lại</button>
+            </form>
+        </div>
+        <?php endif; ?>
     </div>
 
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">

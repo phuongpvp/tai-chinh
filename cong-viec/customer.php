@@ -604,7 +604,7 @@ include 'layout_top.php';
 <div class="page-header">
     <div>
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-            <a href="room.php?id=<?= $customer['room_id'] ?>" class="btn btn-ghost btn-sm"
+            <a href="<?= !empty($customer['room_id']) ? '/cong-viec/phong/'.$customer['room_id'] : '/cong-viec/khach-hang' ?>" class="btn btn-ghost btn-sm"
                 style="text-decoration:none">← Quay lại</a>
         </div>
         <div style="display:flex;align-items:center;gap:16px;">

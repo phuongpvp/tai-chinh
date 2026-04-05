@@ -119,6 +119,12 @@ $roleLabels = [
                         <span class="nav-icon">🤖</span>
                         <span>Cài đặt AI</span>
                     </a>
+                    <?php if (!empty($user['cv_can_telegram'])): ?>
+                    <a href="/cai-dat/telegram" class="nav-item" target="_blank">
+                        <span class="nav-icon">📨</span>
+                        <span>Telegram</span>
+                    </a>
+                    <?php endif; ?>
 
                     <?php endif; ?>
                 </div>
