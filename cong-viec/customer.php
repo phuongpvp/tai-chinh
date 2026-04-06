@@ -581,6 +581,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'xlsx') {
         }
         SimpleXLSXGen::fromArray($rows)->downloadAs('chuyenphong_' . $safeCustomerName . '_' . date('Ymd') . '.xlsx');
     }
+    exit;
 }
 
 // Tính trạng thái
