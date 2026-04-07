@@ -23,7 +23,7 @@ $stmt = $pdo->prepare("
     FROM loans l
     LEFT JOIN customers c ON l.customer_id = c.id
     LEFT JOIN cv_rooms r ON l.cv_room_id = r.id
-    WHERE (c.name LIKE ? OR c.phone LIKE ?) AND l.status != 'closed'
+    WHERE (c.name LIKE ? OR c.phone LIKE ?)
     ORDER BY l.cv_status ASC, c.name ASC
     LIMIT 10
 ");

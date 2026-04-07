@@ -135,6 +135,7 @@ try {
               AND l.cv_room_id = ?
               AND l.next_payment_date IS NOT NULL
               AND l.next_payment_date <= ?
+              AND l.next_payment_date > COALESCE(l.cv_transfer_date, '2000-01-01')
         ");
         $moveBackStmt->execute([$htRoomId, $today]);
         $moveBackLoans = $moveBackStmt->fetchAll(PDO::FETCH_ASSOC);

@@ -57,7 +57,7 @@ $sql = "SELECT l.id, c.name, c.phone, c.identity_card as cccd, c.address,
         l.cv_room_id as room_id, l.cv_status as status, l.cv_due_date as due_date,
         l.cv_assigned_to as assigned_to, l.cv_notes as notes,
         l.cv_transfer_date as transfer_date, l.loan_code, l.amount as loan_amount,
-        l.cv_company_tag as company_tag,
+        l.cv_company_tag as company_tag, l.status as loan_status,
         u.fullname as assigned_name 
         FROM loans l LEFT JOIN customers c ON l.customer_id = c.id 
         LEFT JOIN users u ON l.cv_assigned_to = u.id
@@ -211,6 +211,16 @@ include 'layout_top.php';
                     <?php if (!empty($c['company_tag'])): ?>
                     <div class="customer-tags">
                         <span class="tag" style="background:var(--accent-green);color:#000;font-weight:600;font-size:11px;"><?= sanitize($c['company_tag']) ?></span>
+                    </div>
+                    <?php endif; ?>
+                    <?php if (!empty($c['loan_status']) && $c['loan_status'] !== 'active'): ?>
+                    <div class="customer-tags">
+                        <?php
+                        $lsLabels = ['bad_debt' => 'Nợ xấu', 'closed' => 'Đã kết thúc', 'overdue' => 'Quá hạn'];
+                        $lsColors = ['bad_debt' => '#ef4444', 'closed' => '#6b7280', 'overdue' => '#f59e0b'];
+                        $lsKey = $c['loan_status'];
+                        ?>
+                        <span class="tag" style="background:<?= $lsColors[$lsKey] ?? '#6b7280' ?>20;color:<?= $lsColors[$lsKey] ?? '#6b7280' ?>;font-size:11px;">● <?= $lsLabels[$lsKey] ?? $lsKey ?></span>
                     </div>
                     <?php endif; ?>
                     <?php if ($c['assigned_name']): ?>
