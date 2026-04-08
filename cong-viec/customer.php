@@ -1584,38 +1584,6 @@ include 'layout_top.php';
                         </div>
                     </div>
                 </div>
-                <hr style="border:none;border-top:1px solid var(--border-color);margin:8px 0 16px;">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-                    <div class="form-group">
-                        <label class="form-label">Ngày hết hạn</label>
-                        <input type="date" name="due_date" class="form-input" value="<?= $customer['due_date'] ?>">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Nhân viên phụ trách</label>
-                        <select name="assigned_to" class="form-select">
-                            <option value="">-- Chọn nhân viên --</option>
-                            <?php foreach ($employees as $emp): ?>
-                                <option value="<?= $emp['id'] ?>" <?= $emp['id'] == $customer['assigned_to'] ? 'selected' : '' ?>><?= sanitize($emp['fullname']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">🔮 Dự kiến chuyển đến phòng</label>
-                    <select name="planned_next_room_id" class="form-select">
-                        <option value="">-- Chưa xác định --</option>
-                        <?php foreach ($rooms as $r): ?>
-                            <option value="<?= $r['id'] ?>" <?= $r['id'] == $customer['planned_next_room_id'] ? 'selected' : '' ?>>
-                                <?= $r['icon'] ?>     <?= sanitize($r['name']) ?>
-                                <?= $r['sla_days'] > 0 ? '(Hạn: ' . $r['sla_days'] . ' ngày)' : '' ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Ghi chú</label>
-                    <textarea name="notes" class="form-textarea"><?= sanitize($customer['notes'] ?? '') ?></textarea>
-                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('edit-modal')">Hủy</button>
