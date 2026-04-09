@@ -28,10 +28,10 @@ JOIN loans l ON t.loan_id = l.id
 JOIN customers c ON l.customer_id = c.id
 WHERE t.store_id = ? 
     AND t.type = 'collect_interest'
-    AND t.date BETWEEN ? AND ?
+    AND DATE(t.created_at) BETWEEN ? AND ?
     AND (t.note NOT LIKE '%Import%' OR t.note IS NULL)
     AND t.amount > 0
-ORDER BY t.date DESC, t.id DESC";
+ORDER BY t.created_at DESC, t.id DESC";
 
 $stmt = $conn->prepare($sql);
 $stmt->execute([$current_store_id, $from_date, $to_date]);
@@ -138,20 +138,20 @@ $total_interest = 0;
                                             <td class="text-center"><?php echo $idx + 1; ?></td>
                                             <td class="text-center">Tín chấp</td>
                                             <td class="text-center text-danger fw-bold">
-                                                <a href="contract_view.php?id=<?php echo $t['loan_id']; ?>"
+                                                <a href="/contract_view.php?id=<?php echo $t['loan_id']; ?>"
                                                     class="text-danger text-decoration-none">
                                                     <?php echo $t['loan_code']; ?>
                                                 </a>
                                             </td>
                                             <td>
-                                                <a href="contract_view.php?id=<?php echo $t['loan_id']; ?>"
+                                                <a href="/contract_view.php?id=<?php echo $t['loan_id']; ?>"
                                                     class="text-primary text-decoration-none">
                                                     <?php echo htmlspecialchars($t['customer_name']); ?>
                                                 </a>
                                             </td>
                                             <td></td> <!-- Tên hàng empty for Tin chap -->
                                             <td class="text-end"><?php echo number_format($t['original_loan_amount']); ?></td>
-                                            <td class="text-center"><?php echo date('H:i d/m/Y', strtotime($t['date'])); ?></td>
+                                            <td class="text-center"><?php echo date('H:i d/m/Y', strtotime($t['created_at'])); ?></td>
 
                                             <!-- Tien lai phi -->
                                             <td class="text-end text-primary fw-bold">

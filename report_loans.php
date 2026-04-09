@@ -114,7 +114,7 @@ foreach ($loans as $loan)
                                                     ?>
                                                 </td>
                                                 <td class="text-center">
-                                                    <a href="contract_view.php?id=<?php echo $loan['id']; ?>"
+                                                    <a href="/contract_view.php?id=<?php echo $loan['id']; ?>"
                                                         class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i>
                                                         Xem</a>
                                                 </td>

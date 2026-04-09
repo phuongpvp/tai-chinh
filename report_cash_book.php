@@ -46,10 +46,10 @@ try {
 $prev_date = date('Y-m-d', strtotime($from_date . ' -1 day'));
 
 // Loans before period
-$sql = "SELECT SUM(amount) FROM transactions WHERE store_id = ? AND date <= ? AND type IN ('collect_interest', 'pay_principal', 'pay_all') AND (note NOT LIKE '%Import%' OR note IS NULL)";
+$sql = "SELECT SUM(amount) FROM transactions WHERE store_id = ? AND DATE(created_at) <= ? AND type IN ('collect_interest', 'pay_principal', 'pay_all') AND (note NOT LIKE '%Import%' OR note IS NULL)";
 $pre_loans_in = getSum($conn, $sql, [$current_store_id, $prev_date]);
 
-$sql = "SELECT SUM(amount) FROM transactions WHERE store_id = ? AND date <= ? AND type IN ('disburse', 'lend_more') AND (note NOT LIKE '%Import%' OR note IS NULL)";
+$sql = "SELECT SUM(amount) FROM transactions WHERE store_id = ? AND DATE(created_at) <= ? AND type IN ('disburse', 'lend_more') AND (note NOT LIKE '%Import%' OR note IS NULL)";
 $pre_loans_out = getSum($conn, $sql, [$current_store_id, $prev_date]);
 
 // Other before period
@@ -63,10 +63,10 @@ $period_opening_balance = $store_initial_balance + ($pre_loans_in - $pre_loans_o
 
 // 3. Calculate CLOSING BALANCE (up to end date)
 // Loans total up to to_date
-$sql = "SELECT SUM(amount) FROM transactions WHERE store_id = ? AND date <= ? AND type IN ('collect_interest', 'pay_principal', 'pay_all') AND (note NOT LIKE '%Import%' OR note IS NULL)";
+$sql = "SELECT SUM(amount) FROM transactions WHERE store_id = ? AND DATE(created_at) <= ? AND type IN ('collect_interest', 'pay_principal', 'pay_all') AND (note NOT LIKE '%Import%' OR note IS NULL)";
 $total_loans_in = getSum($conn, $sql, [$current_store_id, $to_date]);
 
-$sql = "SELECT SUM(amount) FROM transactions WHERE store_id = ? AND date <= ? AND type IN ('disburse', 'lend_more') AND (note NOT LIKE '%Import%' OR note IS NULL)";
+$sql = "SELECT SUM(amount) FROM transactions WHERE store_id = ? AND DATE(created_at) <= ? AND type IN ('disburse', 'lend_more') AND (note NOT LIKE '%Import%' OR note IS NULL)";
 $total_loans_out = getSum($conn, $sql, [$current_store_id, $to_date]);
 
 // Other total up to to_date
@@ -82,11 +82,11 @@ $closing_balance = $store_initial_balance + ($total_loans_in - $total_loans_out)
 
 // Period Balance (Within date range) - for display only
 // 2.1 Loans In - Exclude imported transactions
-$sql = "SELECT SUM(amount) FROM transactions WHERE store_id = ? AND date BETWEEN ? AND ? AND type IN ('collect_interest', 'pay_principal', 'pay_all') AND (note NOT LIKE '%Import%' OR note IS NULL)";
+$sql = "SELECT SUM(amount) FROM transactions WHERE store_id = ? AND DATE(created_at) BETWEEN ? AND ? AND type IN ('collect_interest', 'pay_principal', 'pay_all') AND (note NOT LIKE '%Import%' OR note IS NULL)";
 $pe_loans_in = getSum($conn, $sql, [$current_store_id, $from_date, $to_date]);
 
 // 2.2 Loans Out - Exclude imported transactions
-$sql = "SELECT SUM(amount) FROM transactions WHERE store_id = ? AND date BETWEEN ? AND ? AND type IN ('disburse', 'lend_more') AND (note NOT LIKE '%Import%' OR note IS NULL)";
+$sql = "SELECT SUM(amount) FROM transactions WHERE store_id = ? AND DATE(created_at) BETWEEN ? AND ? AND type IN ('disburse', 'lend_more') AND (note NOT LIKE '%Import%' OR note IS NULL)";
 $pe_loans_out = getSum($conn, $sql, [$current_store_id, $from_date, $to_date]);
 
 // 2.3 Other In
@@ -119,8 +119,8 @@ try {
     JOIN loans l ON t.loan_id = l.id
     JOIN customers c ON l.customer_id = c.id
     LEFT JOIN users u ON t.user_id = u.id
-    WHERE t.store_id = ? AND t.date BETWEEN ? AND ? AND (t.note NOT LIKE '%Import%' OR t.note IS NULL) AND t.type != 'adjust_debt' AND t.amount > 0
-    ORDER BY t.date ASC, t.id ASC";
+    WHERE t.store_id = ? AND DATE(t.created_at) BETWEEN ? AND ? AND (t.note NOT LIKE '%Import%' OR t.note IS NULL) AND t.type != 'adjust_debt' AND t.amount > 0
+    ORDER BY t.created_at ASC, t.id ASC";
 
     $stmt_credit = $conn->prepare($sql_credit);
     $stmt_credit->execute([$current_store_id, $from_date, $to_date]);
@@ -363,10 +363,10 @@ if (!empty($other_trans)) {
                                 ?>
                                     <tr class="<?php echo $is_reversal ? 'text-danger' : ''; ?>">
                                         <td class="text-center"><?php echo $idx + 1; ?></td>
-                                        <td class="text-center"><?php echo date('d-m-Y', strtotime($t['date'])); ?></td>
+                                        <td class="text-center"><?php echo date('d-m-Y H:i', strtotime($t['created_at'])); ?></td>
                                         <td><?php echo htmlspecialchars($t['user_name'] ?? 'N/A'); ?></td>
                                         <td>
-                                            <a href="contract_view.php?id=<?php echo $t['loan_id']; ?>" class="text-decoration-none">
+                                            <a href="/contract_view.php?id=<?php echo $t['loan_id']; ?>" class="text-decoration-none">
                                                 <?php echo htmlspecialchars($t['customer_name']); ?>
                                             </a>
                                         </td>

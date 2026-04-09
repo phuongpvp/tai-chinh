@@ -68,6 +68,35 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Handle Interest Type 'ngay' vs 'percent' logic if needed
         // For now storing raw input.
 
+        // === CHECK: Quỹ tiền mặt phải >= số tiền giải ngân ===
+        $initial_balance = 0;
+        try {
+            $stmt_cap = $conn->prepare("SELECT initial_balance FROM stores WHERE id = ?");
+            $stmt_cap->execute([$current_store_id]);
+            $initial_balance = $stmt_cap->fetchColumn() ?: 0;
+        } catch (Exception $e) {}
+
+        $stmt_in = $conn->prepare("SELECT 
+            (SELECT COALESCE(SUM(amount),0) FROM transactions WHERE store_id = ? AND type IN ('collect_interest', 'pay_principal', 'pay_all') AND (note NOT LIKE '%Import%' OR note IS NULL)),
+            (SELECT COALESCE(SUM(amount),0) FROM other_transactions WHERE store_id = ? AND type = 'income' AND (note NOT LIKE '%Import%' OR note IS NULL))");
+        $stmt_in->execute([$current_store_id, $current_store_id]);
+        $row_in = $stmt_in->fetch(PDO::FETCH_NUM);
+        $total_in = ($row_in[0] ?? 0) + ($row_in[1] ?? 0);
+
+        $stmt_out = $conn->prepare("SELECT 
+            (SELECT COALESCE(SUM(amount),0) FROM transactions WHERE store_id = ? AND type IN ('disburse', 'lend_more') AND (note NOT LIKE '%Import%' OR note IS NULL)),
+            (SELECT COALESCE(SUM(amount),0) FROM other_transactions WHERE store_id = ? AND type = 'expense' AND (note NOT LIKE '%Import%' OR note IS NULL))");
+        $stmt_out->execute([$current_store_id, $current_store_id]);
+        $row_out = $stmt_out->fetch(PDO::FETCH_NUM);
+        $total_out = ($row_out[0] ?? 0) + ($row_out[1] ?? 0);
+
+        $cash_on_hand = $initial_balance + $total_in - $total_out;
+
+        if ($cash_on_hand < $amount) {
+            $error = "Không thể tạo hợp đồng! Quỹ tiền mặt hiện tại: " . number_format($cash_on_hand) . " VNĐ, không đủ giải ngân " . number_format($amount) . " VNĐ.";
+        }
+
+        if (!$error) {
         try {
             $stmt = $conn->prepare("INSERT INTO loans 
                 (customer_id, loan_code, amount, loan_type, interest_type, interest_rate, period_days, start_date, end_date, collateral, contract_note, status, store_id) 
@@ -100,6 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         } catch (PDOException $e) {
             $error = "Lỗi tạo hợp đồng: " . $e->getMessage();
         }
+        } // end if (!$error)
     }
 }
 ?>

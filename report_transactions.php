@@ -48,10 +48,10 @@ try {
 // 2. Opening Balance (before from_date)
 $prev_date = date('Y-m-d', strtotime($from_date . ' -1 day'));
 
-$sql = "SELECT SUM(amount) FROM transactions WHERE store_id = ? AND date <= ? AND type IN ('collect_interest', 'pay_principal', 'pay_all') $import_filter_simple $amount_filter_simple";
+$sql = "SELECT SUM(amount) FROM transactions WHERE store_id = ? AND DATE(created_at) <= ? AND type IN ('collect_interest', 'pay_principal', 'pay_all') $import_filter_simple $amount_filter_simple";
 $pre_loans_in = getSum($conn, $sql, [$current_store_id, $prev_date]);
 
-$sql = "SELECT SUM(amount) FROM transactions WHERE store_id = ? AND date <= ? AND type IN ('disburse', 'lend_more') $import_filter_simple $amount_filter_simple";
+$sql = "SELECT SUM(amount) FROM transactions WHERE store_id = ? AND DATE(created_at) <= ? AND type IN ('disburse', 'lend_more') $import_filter_simple $amount_filter_simple";
 $pre_loans_out = getSum($conn, $sql, [$current_store_id, $prev_date]);
 
 // Other transactions before period
@@ -63,10 +63,10 @@ $pre_other_out = getSum($conn, $sql, [$current_store_id, $prev_date]);
 $opening_balance = $store_initial_balance + ($pre_loans_in - $pre_loans_out) + ($pre_other_in - $pre_other_out);
 
 // 3. Period Transactions (Tín chấp)
-$sql = "SELECT SUM(amount) FROM transactions WHERE store_id = ? AND date BETWEEN ? AND ? AND type IN ('collect_interest', 'pay_principal', 'pay_all') $import_filter_simple $amount_filter_simple";
+$sql = "SELECT SUM(amount) FROM transactions WHERE store_id = ? AND DATE(created_at) BETWEEN ? AND ? AND type IN ('collect_interest', 'pay_principal', 'pay_all') $import_filter_simple $amount_filter_simple";
 $pe_tc_thu = getSum($conn, $sql, [$current_store_id, $from_date, $to_date]);
 
-$sql = "SELECT SUM(amount) FROM transactions WHERE store_id = ? AND date BETWEEN ? AND ? AND type IN ('disburse', 'lend_more') $import_filter_simple $amount_filter_simple";
+$sql = "SELECT SUM(amount) FROM transactions WHERE store_id = ? AND DATE(created_at) BETWEEN ? AND ? AND type IN ('disburse', 'lend_more') $import_filter_simple $amount_filter_simple";
 $pe_tc_chi = getSum($conn, $sql, [$current_store_id, $from_date, $to_date]);
 
 // 4. Period Other Transactions (Thu Chi Hoạt Động)
@@ -92,10 +92,10 @@ $sql_detail = "SELECT t.*, l.loan_code, c.name as customer_name, u.username as u
     LEFT JOIN loans l ON t.loan_id = l.id
     LEFT JOIN customers c ON l.customer_id = c.id
     LEFT JOIN users u ON t.user_id = u.id
-    WHERE t.store_id = ? AND t.date BETWEEN ? AND ?
+    WHERE t.store_id = ? AND DATE(t.created_at) BETWEEN ? AND ?
     $import_filter $amount_filter
     $user_filter_sql
-    ORDER BY t.date ASC, t.id ASC";
+    ORDER BY t.created_at ASC, t.id ASC";
 
 $stmt_detail = $conn->prepare($sql_detail);
 $stmt_detail->execute($detail_params);
@@ -257,10 +257,10 @@ function isIncome($type) {
                                             <td><?php echo htmlspecialchars($t['user_name'] ?? 'N/A'); ?></td>
                                             <td>
                                                 <?php if ($t['customer_name']): ?>
-                                                    <a href="contract_view.php?id=<?php echo $t['loan_id']; ?>" class="text-decoration-none fw-bold"><?php echo htmlspecialchars($t['customer_name']); ?></a>
+                                                    <a href="/contract_view.php?id=<?php echo $t['loan_id']; ?>" class="text-decoration-none fw-bold"><?php echo htmlspecialchars($t['customer_name']); ?></a>
                                                 <?php endif; ?>
                                             </td>
-                                            <td><?php echo date('d/m/Y', strtotime($t['date'])); ?></td>
+                                            <td><?php echo date('d/m/Y H:i', strtotime($t['created_at'])); ?></td>
                                             <td class="text-muted"><?php echo htmlspecialchars($t['note'] ?? ''); ?></td>
                                             <td class="text-end fw-bold text-success">
                                                 <?php if ($is_income) echo number_format($t['amount']); ?>

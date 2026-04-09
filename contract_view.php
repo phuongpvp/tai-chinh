@@ -490,9 +490,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         header("Location: contract_view.php?id=$id&msg=" . urlencode($msg) . $view_mode_param);
         exit;
+    } elseif ($action == 'transfer_store') {
+        if ($_SESSION['role'] == 'super_admin') {
+            $new_store_id = intval($_POST['new_store_id']);
+            if ($new_store_id > 0 && $new_store_id != $current_store_id) {
+                $store_name_stmt = $conn->prepare("SELECT name FROM stores WHERE id = ?");
+                $store_name_stmt->execute([$new_store_id]);
+                $new_store_name = $store_name_stmt->fetchColumn();
+
+                if ($new_store_name) {
+                    $conn->prepare("UPDATE loans SET store_id = ? WHERE id = ?")->execute([$new_store_id, $id]);
+                    $conn->prepare("UPDATE customers SET store_id = ? WHERE id = ?")->execute([$new_store_id, $loan['customer_id']]);
+                    $conn->prepare("UPDATE transactions SET store_id = ? WHERE loan_id = ?")->execute([$new_store_id, $id]);
+                    try { $conn->prepare("UPDATE payment_history SET store_id = ? WHERE loan_id = ?")->execute([$new_store_id, $id]); } catch(Exception $e) {}
+
+                    $msg = "Đã chuyển hợp đồng sang $new_store_name!";
+                    header("Location: contracts.php?msg=" . urlencode($msg));
+                    exit;
+                } else {
+                    $msg = "Không tìm thấy công ty!";
+                }
+            } else {
+                $msg = "Công ty đích không hợp lệ!";
+            }
+        } else {
+            $msg = "Bạn không có quyền thực hiện!";
+        }
+        header("Location: contract_view.php?id=$id&msg=" . urlencode($msg) . $view_mode_param);
+        exit;
     }
 }
-// Check for redirect message
 if (isset($_GET['msg'])) {
     $msg = $_GET['msg'];
 }
@@ -716,6 +743,27 @@ usort($all_history, function($a, $b) {
                                                     ?>
                                                 </td>
                                             </tr>
+                                            <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'super_admin'): ?>
+                                            <tr>
+                                                <td class="fw-bold bg-light">Chuyển công ty</td>
+                                                <td class="text-end">
+                                                    <form method="POST" class="d-inline" onsubmit="return confirm('Xác nhận chuyển hợp đồng sang công ty khác?');">
+                                                        <input type="hidden" name="action" value="transfer_store">
+                                                        <select name="new_store_id" class="form-select form-select-sm d-inline-block" style="width:auto;" required>
+                                                            <option value="">-- Chọn cty --</option>
+                                                            <?php
+                                                            $stores_list = $conn->query("SELECT id, name FROM stores ORDER BY name")->fetchAll(PDO::FETCH_ASSOC);
+                                                            foreach ($stores_list as $s):
+                                                                if ($s['id'] == $current_store_id) continue;
+                                                            ?>
+                                                                <option value="<?= $s['id'] ?>"><?= htmlspecialchars($s['name']) ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                        <button type="submit" class="btn btn-sm btn-outline-warning ms-1"><i class="fas fa-exchange-alt"></i> Chuyển</button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                            <?php endif; ?>
                                         </table>
 
 

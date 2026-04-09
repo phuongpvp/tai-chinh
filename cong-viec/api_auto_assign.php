@@ -69,7 +69,7 @@ try {
         LEFT JOIN stores s ON l.store_id = s.id
         WHERE l.status = 'active'
           AND l.next_payment_date IS NOT NULL
-          AND l.next_payment_date = :today
+          AND l.next_payment_date <= :today
           AND (l.cv_room_id IS NULL OR l.cv_room_id = 0)
         ORDER BY l.next_payment_date ASC
     ");
@@ -151,6 +151,35 @@ try {
                 'status' => 'moved_back_from_completed'
             ];
         }
+    }
+
+    // 6) Gửi báo cáo Telegram tự động
+    try {
+        require_once __DIR__ . '/../telegram_helper.php';
+        $conn = $pdo; // telegram_helper dùng $conn
+        
+        $stmt_chat = $conn->prepare("SELECT setting_value FROM system_settings WHERE setting_key = 'telegram_chat_id'");
+        $stmt_chat->execute();
+        $chat_row = $stmt_chat->fetch(PDO::FETCH_ASSOC);
+        
+        if ($chat_row && !empty($chat_row['setting_value'])) {
+            $chat_id = $chat_row['setting_value'];
+            $report = generateDailyReport($conn);
+            
+            $header = "📋 *BÁO CÁO TỰ ĐỘNG - " . date('d/m/Y') . "*\n";
+            $header .= "🏠 Đã đẩy vào phòng: " . ($results['assigned'] ?? 0) . " khách\n";
+            $header .= "🔄 Chuyển lại từ HT: " . ($results['moved_back'] ?? 0) . " khách\n";
+            $header .= "--------------------\n\n";
+            
+            sendTelegramMessage($chat_id, $header . $report, $conn);
+            $results['telegram_sent'] = true;
+        } else {
+            $results['telegram_sent'] = false;
+            $results['telegram_note'] = 'Chat ID chưa cấu hình';
+        }
+    } catch (Exception $e) {
+        $results['telegram_sent'] = false;
+        $results['telegram_error'] = $e->getMessage();
     }
 
     $results['success'] = true;
