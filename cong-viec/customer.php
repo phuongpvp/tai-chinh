@@ -899,9 +899,7 @@ include 'layout_top.php';
                 </div>
                 <!-- Hiển thị chế độ xem -->
                 <div id="desc-display"
-                    style="font-size:14px;line-height:1.6;white-space:pre-wrap;color:var(--text-secondary);min-height:40px;max-height:200px;overflow-y:auto;padding:8px;">
-                    <?= sanitize($customer['description'] ?? '') ?: '<span style="color:var(--text-muted);font-style:italic;">Chưa có mô tả</span>' ?>
-                </div>
+                    style="font-size:14px;line-height:1.6;white-space:pre-wrap;color:var(--text-secondary);min-height:40px;max-height:200px;overflow-y:auto;padding:8px;"><?= sanitize($customer['description'] ?? '') ?: '<span style="color:var(--text-muted);font-style:italic;">Chưa có mô tả</span>' ?></div>
                 <!-- Textarea ẩn -->
                 <textarea name="description" class="form-textarea" id="desc-textarea"
                     style="min-height:160px;border:1px solid var(--border-color);padding:8px;resize:vertical;font-size:14px;line-height:1.6;display:none;"
@@ -940,9 +938,7 @@ include 'layout_top.php';
                         CHÍNH</span>
                     <span style="color:var(--text-muted);font-size:11px;">Tự động đồng bộ</span>
                 </div>
-                <div style="font-size:14px;line-height:1.8;white-space:pre-wrap;color:var(--text-secondary);padding:8px;">
-                    <?= sanitize($customer['tc_info']) ?>
-                </div>
+                <div style="font-size:14px;line-height:1.8;white-space:pre-wrap;color:var(--text-secondary);padding:8px;"><?= sanitize($customer['tc_info']) ?></div>
             </div>
         </section>
     <?php endif; ?>
