@@ -58,6 +58,7 @@ $sql = "SELECT l.id, c.name, c.phone, c.identity_card as cccd, c.address,
         l.cv_assigned_to as assigned_to, l.cv_notes as notes,
         l.cv_transfer_date as transfer_date, l.loan_code, l.amount as loan_amount,
         l.cv_company_tag as company_tag, l.status as loan_status,
+        l.cv_is_urgent as is_urgent,
         u.fullname as assigned_name 
         FROM loans l LEFT JOIN customers c ON l.customer_id = c.id 
         LEFT JOIN users u ON l.cv_assigned_to = u.id
@@ -93,7 +94,7 @@ $sortOptions = [
     'new_first'=> 'l.cv_transfer_date DESC, c.name ASC',
 ];
 $orderBy = $sortOptions[$sort] ?? $sortOptions['due_asc'];
-$sql .= " ORDER BY $orderBy";
+$sql .= " ORDER BY l.cv_is_urgent DESC, $orderBy";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
@@ -199,10 +200,15 @@ include 'layout_top.php';
                     $statusText = 'Còn ' . $days . ' ngày';
                 }
             ?>
-                <a href="/cong-viec/khach-hang/<?= $c['id'] ?>" class="customer-card" style="text-decoration:none;color:inherit;">
+                <a href="/cong-viec/khach-hang/<?= $c['id'] ?>" class="customer-card <?= $c['is_urgent'] ? 'card-urgent' : '' ?>" style="text-decoration:none;color:inherit;" id="card-<?= $c['id'] ?>">
                     <div class="customer-card-header">
                         <div class="customer-avatar">👤</div>
                         <div class="customer-name"><?= sanitize($c['name']) ?></div>
+                        <button class="star-btn <?= $c['is_urgent'] ? 'starred' : '' ?>" 
+                                onclick="event.preventDefault();event.stopPropagation();toggleStar(<?= $c['id'] ?>, this)" 
+                                title="Đánh dấu gấp">
+                            <?= $c['is_urgent'] ? '⭐' : '☆' ?>
+                        </button>
                     </div>
                     <div class="customer-status" style="background:<?= $statusColor ?>20; color:<?= $statusColor ?>">
                         <span class="status-dot" style="background:<?= $statusColor ?>"></span>
@@ -294,6 +300,29 @@ include 'layout_top.php';
 function searchCustomer() {
     const q = document.getElementById('search-input').value;
     window.location.href = '?id=<?= $roomId ?>&search=' + encodeURIComponent(q);
+}
+
+function toggleStar(loanId, btn) {
+    fetch('/cong-viec/api_toggle_star.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'loan_id=' + loanId
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) {
+            const card = document.getElementById('card-' + loanId);
+            if (data.is_urgent) {
+                btn.classList.add('starred');
+                btn.innerHTML = '⭐';
+                card.classList.add('card-urgent');
+            } else {
+                btn.classList.remove('starred');
+                btn.innerHTML = '☆';
+                card.classList.remove('card-urgent');
+            }
+        }
+    });
 }
 </script>
 

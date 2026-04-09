@@ -434,6 +434,42 @@ a:hover {
     box-shadow: var(--shadow-sm);
 }
 
+/* Star/Urgent Feature */
+.customer-card.card-urgent {
+    border-color: var(--accent-yellow);
+    box-shadow: 0 0 12px rgba(245, 166, 35, 0.15);
+}
+
+.star-btn {
+    margin-left: auto;
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+    color: var(--text-muted);
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.star-btn:hover {
+    background: var(--bg-elevated);
+    transform: scale(1.2);
+}
+
+.star-btn.starred {
+    color: var(--accent-yellow);
+    animation: star-pop 0.3s ease;
+}
+
+@keyframes star-pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+}
+
 .customer-card-header {
     display: flex;
     align-items: center;
