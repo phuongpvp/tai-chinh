@@ -753,9 +753,7 @@ include 'layout_top.php';
             </div>
             <div id="pinned-display">
                 <?php if ($customer['pinned_note']): ?>
-                    <div style="white-space:pre-wrap;font-size:14px;line-height:1.7;color:var(--text-secondary);">
-                        <?= sanitize($customer['pinned_note']) ?>
-                    </div>
+                    <div style="white-space:pre-wrap;font-size:14px;line-height:1.7;color:var(--text-secondary);"><?= sanitize($customer['pinned_note']) ?></div>
                 <?php else: ?>
                     <span style="color:var(--text-muted);font-size:13px;font-style:italic;">Chưa có nội dung lưu ý</span>
                 <?php endif; ?>
