@@ -36,6 +36,36 @@ try {
     // 0) Sync: Luôn cập nhật cv_company_tag = đúng tên cửa hàng bên TC
     $pdo->exec("UPDATE loans l JOIN stores s ON l.store_id = s.id SET l.cv_company_tag = s.name WHERE l.cv_room_id IS NOT NULL AND l.cv_room_id > 0");
 
+    // 0b) Sync: Cập nhật cv_tc_info = tóm tắt thông tin tài chính cho khách đang ở phòng CV
+    $tcLoans = $pdo->query("
+        SELECT l.id, l.loan_code, l.amount, l.interest_rate, l.interest_type, 
+               l.period_days, l.next_payment_date, s.name as store_name
+        FROM loans l
+        LEFT JOIN stores s ON l.store_id = s.id
+        WHERE l.cv_room_id IS NOT NULL AND l.cv_room_id > 0
+    ")->fetchAll(PDO::FETCH_ASSOC);
+    
+    $tcUpdateStmt = $pdo->prepare("UPDATE loans SET cv_tc_info = ? WHERE id = ?");
+    foreach ($tcLoans as $tcl) {
+        $p = floatval($tcl['amount']);
+        $rate = floatval($tcl['interest_rate']);
+        $type = $tcl['interest_type'] ?? '';
+        $days = (!empty($tcl['period_days']) && $tcl['period_days'] > 0) ? intval($tcl['period_days']) : 30;
+        if ($type === 'ngay' || $rate > 100) {
+            $mult = ($rate < 500) ? 1000 : 1;
+            $interest = ($p / 1000000) * ($rate * $mult) * $days;
+        } else {
+            $interest = ($p * ($rate / 100)) / 30 * $days;
+        }
+        $info = "Mã HĐ: " . ($tcl['loan_code'] ?? '—');
+        $info .= "\nKhoản vay: " . number_format($p, 0, ',', '.') . "đ";
+        $info .= "\nLãi kỳ này: " . number_format($interest, 0, ',', '.') . "đ";
+        $info .= "\nNgày đóng: " . ($tcl['next_payment_date'] ?? '—');
+        $info .= "\nCửa hàng: " . ($tcl['store_name'] ?? '—');
+        $tcUpdateStmt->execute([$info, $tcl['id']]);
+    }
+    $results['tc_info_synced'] = count($tcLoans);
+
     // 1) Tìm phòng "Tín dụng 1"
     $roomStmt = $pdo->query("SELECT id, name, sla_days FROM cv_rooms WHERE name LIKE '%Tín dụng 1%' LIMIT 1");
     $targetRoom = $roomStmt->fetch(PDO::FETCH_ASSOC);
