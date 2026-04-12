@@ -356,9 +356,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         $link = 'https://drive.google.com/file/d/' . $result['id'] . '/view';
 
                         $stmt = $pdo->prepare("INSERT INTO cv_customer_files (loan_id, file_name, drive_file_id, drive_folder_id, drive_link, mime_type, file_size, uploaded_by, category) VALUES (?,?,?,?,?,?,?,?,?)");
-                        $stmt->execute([$customerId, $_FILES['file']['name'], $result['id'], $catFolderId, $link, $_FILES['file']['type'], $_FILES['file']['size'], $user['id'], $fileCategory]);
+                        $stmt->execute([$customerId, $uploadFileName, $result['id'], $catFolderId, $link, $_FILES['file']['type'], $_FILES['file']['size'], $user['id'], $fileCategory]);
 
-                        $_SESSION['flash_message'] = 'Đã upload file: ' . $_FILES['file']['name'];
+                        $_SESSION['flash_message'] = 'Đã upload file: ' . $uploadFileName;
                     } else {
                         $errDetail = json_encode($result, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
                         $_SESSION['flash_message'] = 'Upload thất bại: ' . ($result['error']['message'] ?? $errDetail);
