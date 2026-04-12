@@ -100,16 +100,14 @@ try {
             $stmt = $conn->prepare("INSERT INTO transactions (store_id, loan_id, type, amount, note, date, user_id, created_at) 
                                     VALUES (?, ?, 'collect_interest', ?, ?, NOW(), ?, NOW())");
             $stmt->execute([$current_store_id, $loan_id, $reversal_amount, $reversal_note, $_SESSION['user_id']]);
-
-            // Roll back paid_until_date to before this period
-            $new_paid_until = date('Y-m-d', strtotime($from_date . ' - 1 day'));
-            $stmt = $conn->prepare("UPDATE loans SET paid_until_date = ?, next_payment_date = ?, is_hidden_from_reminder = 0, appointment_date = NULL WHERE id = ?");
-            $stmt->execute([$new_paid_until, $from_date, $loan_id]);
-
-            echo json_encode(['success' => true, 'message' => 'Payment reverted']);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Không tìm thấy giao dịch để hủy']);
         }
+
+        // Luôn rollback paid_until_date dù có tìm thấy giao dịch hay không
+        $new_paid_until = date('Y-m-d', strtotime($from_date . ' - 1 day'));
+        $stmt = $conn->prepare("UPDATE loans SET paid_until_date = ?, next_payment_date = ?, is_hidden_from_reminder = 0, appointment_date = NULL WHERE id = ?");
+        $stmt->execute([$new_paid_until, $from_date, $loan_id]);
+
+        echo json_encode(['success' => true, 'message' => 'Payment reverted']);
 
     } else {
         echo json_encode(['success' => false, 'message' => 'Invalid action']);

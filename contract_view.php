@@ -484,8 +484,64 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $stmt_upd->execute([$reverse_amount, $id, $current_store_id]);
             }
 
+            // Xóa giao dịch
             $stmt_del = $conn->prepare("DELETE FROM transactions WHERE id = ? AND store_id = ?");
             $stmt_del->execute([$trans_id, $current_store_id]);
+
+            // Nếu là đóng lãi → recalculate paid_until_date
+            if ($trans['type'] == 'collect_interest') {
+                // Tìm giao dịch đóng lãi còn lại gần nhất (theo note chứa ngày)
+                $remaining = $conn->prepare("SELECT note FROM transactions WHERE loan_id = ? AND store_id = ? AND type = 'collect_interest' ORDER BY id DESC");
+                $remaining->execute([$id, $current_store_id]);
+                $remainingTxs = $remaining->fetchAll(PDO::FETCH_ASSOC);
+
+                $maxPaidDate = null;
+                foreach ($remainingTxs as $rtx) {
+                    // Parse date from note like "Đóng lãi kỳ 1 (28-06-2023 - 27-07-2023)"
+                    if (preg_match('/(\d{2}-\d{2}-\d{4})\)?\s*$/', $rtx['note'], $m)) {
+                        $d = DateTime::createFromFormat('d-m-Y', $m[1]);
+                        if ($d) {
+                            $dbDate = $d->format('Y-m-d');
+                            if (!$maxPaidDate || $dbDate > $maxPaidDate) {
+                                $maxPaidDate = $dbDate;
+                            }
+                        }
+                    }
+                    // Also try format "Đóng lãi từ dd/mm/yyyy đến dd/mm/yyyy"
+                    if (preg_match('/đến\s+(\d{2}\/\d{2}\/\d{4})/', $rtx['note'], $m2)) {
+                        $d2 = DateTime::createFromFormat('d/m/Y', $m2[1]);
+                        if ($d2) {
+                            $dbDate2 = $d2->format('Y-m-d');
+                            if (!$maxPaidDate || $dbDate2 > $maxPaidDate) {
+                                $maxPaidDate = $dbDate2;
+                            }
+                        }
+                    }
+                }
+
+                // Lấy thông tin loan để tính next_payment_date
+                $loanInfo = $conn->prepare("SELECT period_days, start_date FROM loans WHERE id = ? AND store_id = ?");
+                $loanInfo->execute([$id, $current_store_id]);
+                $loanData = $loanInfo->fetch(PDO::FETCH_ASSOC);
+                $periodDays = ($loanData['period_days'] ?? 0) > 0 ? $loanData['period_days'] : 30;
+
+                if ($maxPaidDate) {
+                    $nextPayment = date('Y-m-d', strtotime($maxPaidDate . " + 1 day"));
+                    $conn->prepare("UPDATE loans SET paid_until_date = ?, next_payment_date = ? WHERE id = ? AND store_id = ?")
+                        ->execute([$maxPaidDate, $nextPayment, $id, $current_store_id]);
+                } else {
+                    // Không còn giao dịch đóng lãi nào → reset về null
+                    $conn->prepare("UPDATE loans SET paid_until_date = NULL, next_payment_date = ? WHERE id = ? AND store_id = ?")
+                        ->execute([$loanData['start_date'], $id, $current_store_id]);
+                }
+
+                // Xóa payment_history liên quan (nếu có)
+                try {
+                    $conn->prepare("DELETE FROM payment_history WHERE loan_id = ? AND store_id = ? AND payment_date = ?")
+                        ->execute([$id, $current_store_id, $trans['date']]);
+                } catch (Exception $e) { /* ignore */ }
+            }
+
             $msg = "Đã xóa giao dịch thành công!";
         }
         header("Location: contract_view.php?id=$id&msg=" . urlencode($msg) . $view_mode_param);
@@ -2083,6 +2139,7 @@ usort($all_history, function($a, $b) {
                                                     <th style="width:120px;">Số tiền</th>
                                                     <th>Loại giao dịch</th>
                                                     <th>Ghi chú</th>
+                                                    <th style="width:50px;"></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -2118,6 +2175,15 @@ usort($all_history, function($a, $b) {
                                                                 ?>
                                                             </td>
                                                             <td><?php echo htmlspecialchars($h['note']); ?></td>
+                                                            <td class="text-center">
+                                                                <?php if ($h['source'] === 'transaction' && isset($_SESSION['role']) && in_array($_SESSION['role'], ['super_admin', 'admin'])): ?>
+                                                                    <form method="POST" onsubmit="return confirm('Xác nhận xóa giao dịch này? Số tiền gốc sẽ được hoàn lại (nếu có).');" style="display:inline;">
+                                                                        <input type="hidden" name="action" value="delete_transaction">
+                                                                        <input type="hidden" name="trans_id" value="<?php echo $h['sort_id']; ?>">
+                                                                        <button type="submit" class="btn btn-sm text-danger" title="Xóa giao dịch"><i class="fas fa-trash-alt"></i></button>
+                                                                    </form>
+                                                                <?php endif; ?>
+                                                            </td>
                                                         </tr>
                                                 <?php endforeach; ?>
                                             </tbody>
