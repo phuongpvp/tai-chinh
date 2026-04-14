@@ -8,6 +8,14 @@ if (!$customerId)
 
 $user = cvGetUser();
 
+// Load Bảng màu kết quả toàn cục
+$systemResultColors = [];
+$setStmt = $pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'cv_result_colors'");
+$setRow = $setStmt->fetch(PDO::FETCH_ASSOC);
+if ($setRow && !empty($setRow['setting_value'])) {
+    $systemResultColors = json_decode($setRow['setting_value'], true) ?: [];
+}
+
 // Lấy thông tin khách hàng + phòng (bao gồm SLA)
 $stmt = $pdo->prepare("SELECT l.id, c.name, c.phone, c.identity_card as cccd, c.address, c.gender, c.date_of_birth,
     l.cv_room_id as room_id, l.cv_assigned_to as assigned_to, l.cv_status as status, 
@@ -489,7 +497,7 @@ foreach ($transferLogs as $tl) {
     $parts = [];
     $parts[] = 'Từ phòng: ' . ($tl['from_room_name'] ?? '?');
     $parts[] = 'Đến phòng: ' . ($tl['to_room_name'] ?? '?');
-    $parts[] = 'Người chuyển: ' . ($tl['transferred_by_name'] ?? '?');
+    $parts[] = 'Người chuyển: ' . ($tl['transferred_by_name'] ?? 'Hệ thống');
     if ($tl['note'])
         $parts[] = 'Ghi chú: ' . $tl['note'];
     if (isset($tl['deadline_status']))
@@ -1058,25 +1066,21 @@ include 'layout_top.php';
                                 </td>
                                 <td>
                                     <?php if ($wl['result_type']):
-                                        // Mỗi loại kết quả 1 màu riêng
-                                        $rtColors = [
-                                            'Tất máy thuê bao' => ['rgba(107,114,128,0.2)', '#9ca3af'],
-                                            'Không phản hồi' => ['rgba(239,68,68,0.15)', '#ef4444'],
-                                            'Hẹn trả lãi' => ['rgba(234,179,8,0.15)', '#eab308'],
-                                            'Hẹn trả gốc' => ['rgba(249,115,22,0.15)', '#f97316'],
-                                            'Đã liên hệ được' => ['rgba(34,197,94,0.15)', '#22c55e'],
-                                            'Cam kết trả' => ['rgba(59,130,246,0.15)', '#3b82f6'],
-                                            'Kết quả khác' => ['rgba(168,85,247,0.15)', '#a855f7'],
-                                        ];
                                         $rtKey = $wl['result_type'];
-                                        $rtBg = $rtColors[$rtKey][0] ?? 'rgba(245,166,35,0.15)';
-                                        $rtFg = $rtColors[$rtKey][1] ?? '#f5a623';
+                                        // Ưu tiên màu trong hệ thống, nếu không có thì lấy màu Cam nhạt mặc định
+                                        if (isset($systemResultColors[$rtKey])) {
+                                            $rtBg = $systemResultColors[$rtKey]['bg'];
+                                            $rtFg = $systemResultColors[$rtKey]['color'];
+                                        } else {
+                                            $rtBg = 'rgba(245,166,35,0.15)';
+                                            $rtFg = '#f5a623';
+                                        }
                                         ?>
                                         <span class="tag" style="--tag-bg:<?= $rtBg ?>;--tag-color:<?= $rtFg ?>;">
                                             <?= sanitize($wl['result_type']) ?>
                                         </span>
                                         <?php if (!empty($wl['promise_date'])): ?>
-                                            <br><span style="font-size:11px;color:#eab308;">📅 <?= date('d/m/Y', strtotime($wl['promise_date'])) ?></span>
+                                            <br><span style="font-size:11px;color:<?= $rtFg ?>;">📅 <?= date('d/m/Y', strtotime($wl['promise_date'])) ?></span>
                                         <?php endif; ?>
                                     <?php else: ?>
                                         <span style="color:var(--text-muted)">—</span>

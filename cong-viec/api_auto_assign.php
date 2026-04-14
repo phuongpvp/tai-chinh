@@ -183,7 +183,70 @@ try {
         }
     }
 
-    // 6) Gửi báo cáo Telegram tự động
+    // 6) Hoàn trả khách về phòng gốc trước 1 ngày hẹn
+    $tomorrow = date('Y-m-d', strtotime('+1 day'));
+    $remindStmt = $pdo->prepare("
+        SELECT w.loan_id, w.room_id as target_room_id, l.cv_room_id as current_room_id, 
+               r.name as target_room_name, c.name as customer_name, r.sla_days,
+               w.created_at as worklog_time
+        FROM cv_work_logs w
+        JOIN loans l ON w.loan_id = l.id
+        LEFT JOIN customers c ON l.customer_id = c.id
+        LEFT JOIN cv_rooms r ON w.room_id = r.id
+        WHERE w.promise_date = :tomorrow
+          AND l.status = 'active'
+          AND (l.cv_room_id != w.room_id OR l.cv_room_id IS NULL)
+          AND w.id = (
+              SELECT MAX(id) 
+              FROM cv_work_logs 
+              WHERE loan_id = w.loan_id AND promise_date IS NOT NULL
+          )
+    ");
+    $remindStmt->execute(['tomorrow' => $tomorrow]);
+    $remindLoans = $remindStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $results['auto_remind_moves'] = 0;
+    
+    // Chuẩn bị truy vấn kiểm tra hồ sơ có bị dịch chuyển hay không
+    $countStmt = $pdo->prepare("
+        SELECT COUNT(id) FROM cv_transfer_logs 
+        WHERE loan_id = ? AND transferred_at > DATE_ADD(?, INTERVAL 1 HOUR)
+    ");
+
+    foreach ($remindLoans as $rl) {
+        $loanId = $rl['loan_id'];
+        
+        // Kiểm tra xem khách có 'nằm lỳ' hay đã chuyển đò đi nơi khác
+        $countStmt->execute([$loanId, $rl['worklog_time']]);
+        $subsequentMoves = intval($countStmt->fetchColumn());
+        
+        if ($subsequentMoves >= 1) {
+            // Hồ sơ đã có sự dịch chuyển phòng mới ở một thời điểm khác (sau > 1 giờ) -> Không kéo về nữa
+            continue;
+        }
+
+        $fromRoomId = $rl['current_room_id'] ?: 0;
+        $targetRoomId = $rl['target_room_id'];
+        $newSlaDays = intval($rl['sla_days'] ?? 0);
+        $newDueDate = $newSlaDays > 0 ? date('Y-m-d', strtotime("+{$newSlaDays} days")) : null;
+        
+        $pdo->prepare("UPDATE loans SET cv_room_id = ?, cv_transfer_date = ?, cv_due_date = ?, cv_planned_next_room_id = NULL WHERE id = ?")
+             ->execute([$targetRoomId, $today, $newDueDate, $loanId]);
+             
+        $note = "Tự động hoàn trả về theo Cài đặt ngày hẹn làm việc (Hẹn ngày " . date('d/m/Y', strtotime($tomorrow)) . ").";
+             
+        $pdo->prepare("INSERT INTO cv_transfer_logs (loan_id, from_room_id, to_room_id, transferred_by, note, deadline_status) VALUES (?, ?, ?, NULL, ?, NULL)")
+             ->execute([$loanId, $fromRoomId, $targetRoomId, $note]);
+             
+        $results['auto_remind_moves']++;
+        $results['details'][] = [
+            'customer' => $rl['customer_name'],
+            'status' => 'auto_remind_to_room',
+            'room' => $rl['target_room_name']
+        ];
+    }
+
+    // 7) Gửi báo cáo Telegram tự động
     try {
         require_once __DIR__ . '/../telegram_helper.php';
         $conn = $pdo; // telegram_helper dùng $conn
@@ -199,10 +262,13 @@ try {
             $header = "📋 *BÁO CÁO TỰ ĐỘNG - " . date('d/m/Y') . "*\n";
             $header .= "🏠 Đã đẩy vào phòng: " . ($results['assigned'] ?? 0) . " khách\n";
             $header .= "🔄 Chuyển lại từ HT: " . ($results['moved_back'] ?? 0) . " khách\n";
+            $header .= "⏰ Tự hoàn trả nhắc hẹn: " . ($results['auto_remind_moves'] ?? 0) . " khách\n";
             $header .= "--------------------\n\n";
             
-            sendTelegramMessage($chat_id, $header . $report, $conn);
-            $results['telegram_sent'] = true;
+            $chat_ids = array_filter(array_map('trim', explode(',', $chat_id)));
+            foreach ($chat_ids as $cid) {
+                sendTelegramMessage($cid, $header . $report, $conn);
+            }
         } else {
             $results['telegram_sent'] = false;
             $results['telegram_note'] = 'Chat ID chưa cấu hình';

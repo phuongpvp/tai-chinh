@@ -340,8 +340,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $stmt_update->execute([$to_date, $id, $current_store_id]);
 
             // Also update next_payment_date
-            $period_days = $loan['period_days'] > 0 ? $loan['period_days'] : 30;
-            $next_payment = date('Y-m-d', strtotime($to_date . " + $period_days days"));
+            $next_payment = date('Y-m-d', strtotime($to_date . " + 1 day"));
             $stmt_next = $conn->prepare("UPDATE loans SET next_payment_date = ?, is_hidden_from_reminder = 0, appointment_date = NULL WHERE id = ? AND store_id = ?");
             $stmt_next->execute([$next_payment, $id, $current_store_id]);
         }

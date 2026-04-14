@@ -6,6 +6,14 @@ $user = cvGetUser();
 $pageTitle = 'Nhật ký tổng hợp';
 $activePage = 'logs_all';
 
+// Load Bảng màu kết quả toàn cục
+$systemResultColors = [];
+$setStmt = $pdo->query("SELECT setting_value FROM system_settings WHERE setting_key = 'cv_result_colors'");
+$setRow = $setStmt->fetch(PDO::FETCH_ASSOC);
+if ($setRow && !empty($setRow['setting_value'])) {
+    $systemResultColors = json_decode($setRow['setting_value'], true) ?: [];
+}
+
 // Filters
 $filterType = $_GET['type'] ?? 'all'; // all, worklog, transfer
 $filterDate = $_GET['date'] ?? date('Y-m-d');
@@ -200,12 +208,17 @@ include 'layout_top.php';
                             <td style="padding:10px 12px;max-width:300px;overflow:hidden;text-overflow:ellipsis;"><?= sanitize($wl['work_done'] ?? '') ?></td>
                             <td style="padding:10px 12px;">
                                 <?php 
-                                $resultColors = ['success' => '#22c55e', 'promise' => '#f59e0b', 'fail' => '#ef4444', 'other' => '#6b7280'];
-                                $resultLabels = ['success' => 'Thành công', 'promise' => 'Hẹn trả', 'fail' => 'Thất bại', 'other' => 'Khác'];
-                                $rt = $wl['result_type'] ?? 'other';
+                                $rtKey = $wl['result_type'] ?? '';
+                                if (isset($systemResultColors[$rtKey])) {
+                                    $rtBg = $systemResultColors[$rtKey]['bg'];
+                                    $rtFg = $systemResultColors[$rtKey]['color'];
+                                } else {
+                                    $rtBg = 'rgba(245,166,35,0.15)';
+                                    $rtFg = '#f5a623';
+                                }
                                 ?>
-                                <span style="color:<?= $resultColors[$rt] ?? '#6b7280' ?>;font-weight:600;font-size:12px;">
-                                    <?= $resultLabels[$rt] ?? $rt ?>
+                                <span class="tag" style="background:<?= $rtBg ?>; color:<?= $rtFg ?>; padding: 4px 8px; border-radius: 4px; border: 1px solid currentColor; font-weight:600; font-size:12px; display:inline-block;">
+                                    <?= sanitize($rtKey ?: '—') ?>
                                 </span>
                                 <?php if (!empty($wl['promise_date'])): ?>
                                     <br><span style="font-size:11px;color:#f59e0b;">📅 <?= date('d/m/Y', strtotime($wl['promise_date'])) ?></span>
