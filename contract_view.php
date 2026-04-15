@@ -379,6 +379,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         exit;
 
     } elseif ($action == 'close_contract') {
+        // Chỉ super_admin mới được thực hiện đóng HĐ
+        if (!isset($_SESSION['role']) || $_SESSION['role'] != 'super_admin') {
+            $msg = "Bạn chỉ có quyền XEM, không được phép đóng hợp đồng!";
+            header("Location: contract_view.php?id=$id&error=" . urlencode($msg) . $view_mode_param);
+            exit;
+        }
         try {
             $final_interest = $_POST['final_interest'];
             $other_costs = str_replace(['.', ','], '', $_POST['other_costs']);
@@ -1617,8 +1623,13 @@ usort($all_history, function($a, $b) {
                                                     </div>
 
                                                     <div class="text-center mt-4">
-                                                        <button type="submit" class="btn btn-primary px-5">Đóng
-                                                            HĐ</button>
+                                                        <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'super_admin'): ?>
+                                                            <button type="submit" class="btn btn-primary px-5">Đóng HĐ</button>
+                                                        <?php else: ?>
+                                                            <div class="alert alert-warning mb-0 d-inline-block" style="font-size:14px;">
+                                                                <i class="fas fa-eye me-1"></i> Bạn chỉ có quyền <strong>xem</strong> thông tin đóng hợp đồng. Liên hệ Quản lý để thực hiện.
+                                                            </div>
+                                                        <?php endif; ?>
                                                     </div>
                                                 </form>
                                                 <script>

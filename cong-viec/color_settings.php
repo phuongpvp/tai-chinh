@@ -90,7 +90,7 @@ include 'layout_top.php';
 <div class="page-header">
     <div>
         <h1 class="page-title"><span class="page-icon">🎨</span> Bảng màu Kết quả</h1>
-        <p class="page-subtitle">Tùy chỉnh màu sắc các tag kết quả dùng chung cho toàn bộ phòng ban</p>
+        
     </div>
 </div>
 
@@ -99,9 +99,6 @@ include 'layout_top.php';
         <form method="POST">
             <input type="hidden" name="action" value="save_colors">
             
-            <div style="margin-bottom:20px; color:var(--text-secondary); font-size:14px;">
-                💡 <strong>Hướng dẫn:</strong> Hệ thống đã tự động gom nhặt tên tất cả các <strong>Kết quả</strong> từ mọi phòng ban về đây. Chỉnh 1 lần, áp dụng tự động cho hàng ngàn nhật ký toàn hệ thống!
-            </div>
             
             <?php if (empty($allResults)): ?>
                 <div class="empty-state">Chưa có kết quả nào được cấu hình ở bất kỳ phòng ban nào.</div>
