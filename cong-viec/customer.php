@@ -501,7 +501,7 @@ foreach ($transferLogs as $tl) {
     if ($tl['note'])
         $parts[] = 'Ghi chú: ' . $tl['note'];
     if (isset($tl['deadline_status']))
-        $parts[] = 'Deadline: ' . ($tl['deadline_status'] > 0 ? '+' . $tl['deadline_status'] : $tl['deadline_status']);
+        $parts[] = 'Deadline: ' . $tl['deadline_status'];
     $timeline[] = [
         'date' => $tl['transferred_at'],
         'sort_time' => strtotime($tl['transferred_at']),
@@ -584,7 +584,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'xlsx') {
                 $tl['to_room_name'] ?? '',
                 $tl['transferred_by_name'] ?? '',
                 $tl['note'] ?? '',
-                isset($tl['deadline_status']) ? ($tl['deadline_status'] > 0 ? '+' . $tl['deadline_status'] : $tl['deadline_status']) : ''
+                isset($tl['deadline_status']) ? $tl['deadline_status'] : ''
             ];
         }
         SimpleXLSXGen::fromArray($rows)->downloadAs('chuyenphong_' . $safeCustomerName . '_' . date('Ymd') . '.xlsx');
@@ -1163,7 +1163,7 @@ include 'layout_top.php';
                                         <?php elseif ($tl['deadline_status'] == 0): ?>
                                             <span style="color:#f59e0b;">0</span>
                                         <?php else: ?>
-                                            <span style="color:#22c55e;">+<?= $tl['deadline_status'] ?></span>
+                                            <span style="color:#22c55e;"><?= $tl['deadline_status'] ?></span>
                                         <?php endif; ?>
                                     <?php endif; ?>
                                 </td>
