@@ -11,13 +11,31 @@ try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS cv_library (
         id INT AUTO_INCREMENT PRIMARY KEY,
         title VARCHAR(255) NOT NULL,
-        content TEXT,
+        content LONGTEXT,
         category VARCHAR(50) DEFAULT 'guide',
         created_by INT DEFAULT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $pdo->exec("ALTER TABLE cv_library MODIFY content LONGTEXT");
 } catch (Exception $e) {}
+
+// Xử lý POST Upload Image cho Editor
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['action']) && $_GET['action'] == 'upload_image' && isset($_FILES['file'])) {
+    $dir = '../uploads/library/';
+    if (!is_dir($dir)) mkdir($dir, 0777, true);
+    $ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));
+    if (in_array($ext, ['jpg','jpeg','png','gif','webp'])) {
+        $filename = uniqid() . '.' . $ext;
+        if (move_uploaded_file($_FILES['file']['tmp_name'], $dir . $filename)) {
+            echo '/uploads/library/' . $filename;
+            exit;
+        }
+    }
+    http_response_code(400);
+    echo "Upload failed";
+    exit;
+}
 
 // Xử lý POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -72,7 +90,7 @@ include 'layout_top.php';
         <p class="page-subtitle"><?= count($articles) ?> bài viết</p>
     </div>
     <div>
-        <button class="btn btn-primary btn-sm" onclick="openModal('add-article-modal')">➕ Thêm bài viết</button>
+        <button class="btn btn-primary btn-sm" onclick="openAddArticleModal()">➕ Thêm bài viết</button>
     </div>
 </div>
 
@@ -140,7 +158,7 @@ include 'layout_top.php';
             <div id="lib-empty-all" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-lg);padding:48px;text-align:center;">
                 <div style="font-size:48px;margin-bottom:12px;">📂</div>
                 <p style="color:var(--text-muted);font-size:14px;">Chưa có bài viết nào</p>
-                <button class="btn btn-primary" onclick="openModal('add-article-modal')" style="margin-top:12px;">➕ Thêm bài viết đầu tiên</button>
+                <button class="btn btn-primary" onclick="openAddArticleModal()" style="margin-top:12px;">➕ Thêm bài viết đầu tiên</button>
             </div>
         <?php endif; ?>
 
@@ -148,7 +166,7 @@ include 'layout_top.php';
         <div id="lib-empty-cat" style="display:none;background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-lg);padding:40px;text-align:center;">
             <div style="font-size:40px;margin-bottom:10px;">📭</div>
             <p style="color:var(--text-muted);font-size:14px;">Danh mục này chưa có bài viết</p>
-            <button class="btn btn-primary btn-sm" onclick="openModal('add-article-modal')" style="margin-top:10px;">➕ Thêm bài viết</button>
+            <button class="btn btn-primary btn-sm" onclick="openAddArticleModal()" style="margin-top:10px;">➕ Thêm bài viết</button>
         </div>
 
         <div id="lib-articles-list" style="display:flex;flex-direction:column;gap:8px;">
@@ -217,7 +235,7 @@ include 'layout_top.php';
                 </div>
                 <div>
                     <label class="form-label" style="margin-bottom:4px;font-size:12px;color:var(--text-secondary);">Nội dung</label>
-                    <textarea name="content" rows="12" placeholder="Nội dung bài viết..."
+                    <textarea name="content" id="add-content" class="summernote-editor" rows="12" placeholder="Nội dung bài viết..."
                         style="width:100%;padding:10px 12px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:var(--radius-md);color:var(--text-primary);font-size:14px;min-height:220px;resize:vertical;outline:none;line-height:1.7;"></textarea>
                 </div>
             </div>
@@ -256,7 +274,7 @@ include 'layout_top.php';
                 </div>
                 <div>
                     <label class="form-label" style="margin-bottom:4px;font-size:12px;color:var(--text-secondary);">Nội dung</label>
-                    <textarea name="content" id="edit-content" rows="12"
+                    <textarea name="content" id="edit-content" class="summernote-editor" rows="12"
                         style="width:100%;padding:10px 12px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:var(--radius-md);color:var(--text-primary);font-size:14px;min-height:220px;resize:vertical;outline:none;line-height:1.7;"></textarea>
                 </div>
             </div>
@@ -341,7 +359,58 @@ include 'layout_top.php';
 /* Article accordion */
 .lib-article-header:hover { background: rgba(255,255,255,0.03); }
 .lib-article-item.open .lib-chevron { transform: rotate(90deg); }
+
+/* Summernote overrides */
+.note-editor.note-frame { background: var(--bg-primary) !important; color: var(--text-primary) !important; border-radius: var(--radius-md); border: 1px solid var(--border-color) !important; }
+.note-editor .note-editable { color: var(--text-primary) !important; background: var(--bg-primary) !important; }
+.note-editor .note-toolbar { background: var(--bg-card) !important; border-bottom: 1px solid var(--border-color) !important; }
+.note-modal .modal-content { background: var(--bg-card) !important; color: var(--text-primary) !important; }
+.note-modal-header { border-bottom: 1px solid var(--border-color) !important; color: var(--text-primary) !important; }
+.note-modal-title { color: var(--text-primary) !important; }
+.note-form-label { color: var(--text-secondary) !important; }
+.note-input { background: var(--bg-primary) !important; color: var(--text-primary) !important; border: 1px solid var(--border-color) !important; }
+.note-btn { color: var(--text-primary) !important; background: transparent !important; }
+.note-btn:hover { background: rgba(255,255,255,0.1) !important; }
 </style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('.summernote-editor').summernote({
+        height: 350,
+        dialogsInBody: true,
+        toolbar: [
+            ['style', ['bold', 'italic', 'underline', 'clear']],
+            ['font', ['strikethrough', 'superscript', 'subscript']],
+            ['para', ['ul', 'ol', 'h2', 'h3', 'paragraph']],
+            ['insert', ['link', 'picture']],
+            ['view', ['codeview']]
+        ],
+        callbacks: {
+            onImageUpload: function(files) {
+                var editor = $(this);
+                var data = new FormData();
+                data.append("file", files[0]);
+                $.ajax({
+                    url: 'library.php?action=upload_image',
+                    method: 'POST',
+                    data: data,
+                    processData: false,
+                    contentType: false,
+                    success: function(url) {
+                        editor.summernote('insertImage', url);
+                    },
+                    error: function() {
+                        alert('Upload ảnh thất bại!');
+                    }
+                });
+            }
+        }
+    });
+});
+</script>
 
 <script>
 var currentCategory = 'guide';
@@ -402,11 +471,20 @@ function toggleArticle(headerEl) {
     }
 }
 
+function openAddArticleModal() {
+    var addSelect = document.getElementById('add-category-select');
+    if (addSelect) addSelect.value = currentCategory;
+    document.querySelector('#add-article-modal form').reset();
+    if(addSelect) addSelect.value = currentCategory;
+    $('#add-content').summernote('code', '');
+    openModal('add-article-modal');
+}
+
 function editArticle(id, title, content, category) {
     document.getElementById('edit-id').value = id;
     document.getElementById('edit-title').value = title;
-    document.getElementById('edit-content').value = content;
     document.getElementById('edit-category').value = category;
+    $('#edit-content').summernote('code', content);
     openModal('edit-article-modal');
 }
 

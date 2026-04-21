@@ -23,7 +23,7 @@ $stmt = $pdo->prepare("SELECT l.id, c.name, c.phone, c.identity_card as cccd, c.
     l.cv_notes as notes, l.cv_pinned_note as pinned_note, l.cv_description as description,
     l.cv_planned_next_room_id as planned_next_room_id, l.cv_drive_folder_id as drive_folder_id,
     l.loan_code, l.amount as loan_amount, l.created_at,
-    l.next_payment_date, l.status as loan_status,
+    l.next_payment_date, l.status as loan_status, l.old_debt, l.store_id,
     l.cv_facebook_link as facebook_link, l.cv_workplace as workplace, l.cv_hktt as hktt, 
     l.cv_relatives_info as relatives_info, l.cv_company_tag as company_tag, l.cv_tc_info as tc_info,
     r.name as room_name, r.icon as room_icon, r.sla_days, u.fullname as assigned_name
@@ -446,6 +446,21 @@ $workLogs = $pdo->prepare("SELECT wl.*, u.fullname as user_name, r.name as room_
 $workLogs->execute([$customerId]);
 $workLogs = $workLogs->fetchAll();
 
+// Tính tổng lãi đã đóng (từ bảng transactions - khớp với trang hợp đồng)
+$finInterest = $pdo->prepare("SELECT COALESCE(SUM(amount), 0) as total FROM transactions WHERE loan_id = ? AND type = 'collect_interest'");
+$finInterest->execute([$customerId]);
+$totalInterestPaid = floatval($finInterest->fetchColumn());
+
+// Tính "Nợ cũ" = old_debt + cumulative_debt (khớp với trang hợp đồng)
+$cumulativeDebt = 0;
+try {
+    $stmtDebt = $pdo->prepare("SELECT (SUM(underpayment) - SUM(overpayment)) as balance FROM payment_history WHERE loan_id = ? AND store_id = ?");
+    $stmtDebt->execute([$customerId, $customer['store_id']]);
+    $debtResult = $stmtDebt->fetch();
+    $cumulativeDebt = floatval($debtResult['balance'] ?? 0);
+} catch (Exception $e) {}
+$outstandingDebt = floatval($customer['old_debt'] ?? 0) + $cumulativeDebt;
+
 // Lịch sử chuyển phòng
 $transferLogs = $pdo->prepare("SELECT tl.*, 
     fr.name as from_room_name, fr.icon as from_room_icon,
@@ -727,6 +742,16 @@ include 'layout_top.php';
                         <span style="color:var(--text-muted);font-size:11px;">Số tiền vay</span><br>
                         <strong
                             style="font-size:15px;color:var(--accent-red);"><?= number_format($customer['loan_amount'], 0, ',', '.') ?>đ</strong>
+                    </div>
+                    <div>
+                        <span style="color:var(--text-muted);font-size:11px;">Số lãi đã đóng</span><br>
+                        <strong
+                            style="font-size:15px;color:var(--accent-green);"><?= number_format($totalInterestPaid, 0, ',', '.') ?>đ</strong>
+                    </div>
+                    <div>
+                        <span style="color:var(--text-muted);font-size:11px;">Số tiền đang nợ</span><br>
+                        <strong
+                            style="font-size:15px;color:#f59e0b;"><?= number_format($outstandingDebt, 0, ',', '.') ?>đ</strong>
                     </div>
                     <?php if ($customer['next_payment_date']): ?>
                         <div>
